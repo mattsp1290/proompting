@@ -1,0 +1,447 @@
+# MinecraftOps UI - Modern React Admin Dashboard Tasks
+# Project: Frontend for Minecraft server management system
+# Created: 2025-05-31
+
+metadata:
+  project: minecraftops-ui
+  description: Modern React admin dashboard for managing Minecraft servers on cloud infrastructure
+  tech_stack:
+    - React 18+
+    - TypeScript 5.x
+    - Vite
+    - TanStack Query
+    - React Router v6
+    - Tailwind CSS + shadcn/ui
+    - Zustand
+    - React Hook Form + Zod
+    - Playwright
+    - Docker + Nginx
+    - xterm.js (for console access)
+    - Chart.js (for performance metrics)
+
+phases:
+  - name: "Phase 1: Project Setup and Infrastructure"
+    tasks:
+      - id: setup-vite
+        name: "Initialize Vite + React + TypeScript project"
+        description: "Set up modern React development environment with Vite"
+        priority: critical
+        status: pending
+        
+      - id: setup-tooling
+        name: "Configure ESLint, Prettier, and TypeScript"
+        description: "Set up code quality tools with strict TypeScript config"
+        priority: high
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: setup-tailwind
+        name: "Install and configure Tailwind CSS"
+        description: "Set up Tailwind with dark mode support and Minecraft-themed CSS variables"
+        priority: high
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: setup-shadcn
+        name: "Install shadcn/ui component library"
+        description: "Set up shadcn/ui with custom Minecraft-inspired theme configuration"
+        priority: high
+        status: pending
+        dependencies: [setup-tailwind]
+        
+      - id: setup-minecraft-fonts
+        name: "Add Minecraft fonts and styling"
+        description: "Import Minecraft font (Mojangles) and create pixelated UI elements"
+        priority: medium
+        status: pending
+        dependencies: [setup-tailwind]
+
+  - name: "Phase 2: Core Architecture"
+    tasks:
+      - id: setup-routing
+        name: "Configure React Router v6"
+        description: "Set up routing with protected routes and layouts for server management"
+        priority: critical
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: setup-api-client
+        name: "Create API client with Axios"
+        description: "Set up Axios with interceptors for auth, RCON commands, and server communication"
+        priority: critical
+        status: pending
+        dependencies: [setup-tooling]
+        
+      - id: setup-tanstack-query
+        name: "Configure TanStack Query"
+        description: "Set up React Query with caching for server status, player lists, and metrics"
+        priority: critical
+        status: pending
+        dependencies: [setup-api-client]
+        
+      - id: setup-auth-store
+        name: "Create Zustand auth store"
+        description: "Implement auth state management with server operator permissions"
+        priority: critical
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: setup-server-store
+        name: "Create Zustand server state store"
+        description: "Implement global state for active servers, status, and player counts"
+        priority: critical
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: setup-websocket-client
+        name: "Configure WebSocket for real-time updates"
+        description: "Set up WebSocket connection for console output and server events"
+        priority: high
+        status: pending
+        dependencies: [setup-api-client]
+
+  - name: "Phase 3: Authentication & Permissions"
+    tasks:
+      - id: create-auth-pages
+        name: "Create login and signup pages"
+        description: "Build auth pages with Minecraft-themed UI and server operator verification"
+        priority: critical
+        status: pending
+        dependencies: [setup-routing, setup-shadcn]
+        
+      - id: implement-jwt-auth
+        name: "Implement JWT authentication"
+        description: "Handle JWT tokens with server admin role verification"
+        priority: critical
+        status: pending
+        dependencies: [create-auth-pages, setup-auth-store]
+        
+      - id: implement-microsoft-auth
+        name: "Add Microsoft/Mojang OAuth"
+        description: "Implement Minecraft account authentication via Microsoft"
+        priority: high
+        status: pending
+        dependencies: [create-auth-pages]
+        
+      - id: implement-permission-system
+        name: "Implement server permission checks"
+        description: "Create permission system for server operators, moderators, and viewers"
+        priority: high
+        status: pending
+        dependencies: [implement-jwt-auth]
+
+  - name: "Phase 4: Core UI Components"
+    tasks:
+      - id: create-layouts
+        name: "Create app layouts"
+        description: "Build main layout with server navigation and admin/operator layouts"
+        priority: high
+        status: pending
+        dependencies: [setup-routing, setup-shadcn]
+        
+      - id: create-nav-components
+        name: "Build navigation components"
+        description: "Create responsive nav with server switcher and quick actions"
+        priority: high
+        status: pending
+        dependencies: [create-layouts, implement-permission-system]
+        
+      - id: create-server-status-badge
+        name: "Build server status indicators"
+        description: "Create real-time status badges (online/offline/starting/stopping)"
+        priority: high
+        status: pending
+        dependencies: [setup-shadcn, setup-websocket-client]
+        
+      - id: create-player-list-component
+        name: "Build player list component"
+        description: "Create live player list with avatars, ping, and actions"
+        priority: high
+        status: pending
+        dependencies: [setup-shadcn]
+        
+      - id: create-console-component
+        name: "Build terminal console component"
+        description: "Implement xterm.js console for server command execution"
+        priority: critical
+        status: pending
+        dependencies: [setup-websocket-client]
+
+  - name: "Phase 5: Server Management Features"
+    tasks:
+      - id: create-server-dashboard
+        name: "Build server dashboard"
+        description: "Create dashboard with TPS, memory usage, player count charts"
+        priority: high
+        status: pending
+        dependencies: [create-layouts, setup-tanstack-query]
+        
+      - id: create-server-control-panel
+        name: "Implement server control panel"
+        description: "Build start/stop/restart controls with status monitoring"
+        priority: critical
+        status: pending
+        dependencies: [create-server-dashboard]
+        
+      - id: create-server-properties-editor
+        name: "Build server.properties editor"
+        description: "Create form-based editor for server configuration"
+        priority: high
+        status: pending
+        dependencies: [create-layouts]
+        
+      - id: create-world-manager
+        name: "Implement world management"
+        description: "Build UI for world selection, creation, and deletion"
+        priority: high
+        status: pending
+        dependencies: [create-layouts]
+        
+      - id: create-backup-system
+        name: "Build backup management interface"
+        description: "Create automated backup scheduler and restore functionality"
+        priority: critical
+        status: pending
+        dependencies: [create-world-manager]
+        
+      - id: create-whitelist-manager
+        name: "Implement whitelist management"
+        description: "Build interface for managing server whitelist and operators"
+        priority: high
+        status: pending
+        dependencies: [create-player-list-component]
+
+  - name: "Phase 6: Plugin & Mod Management"
+    tasks:
+      - id: create-plugin-browser
+        name: "Build plugin/mod browser"
+        description: "Create searchable catalog of compatible plugins/mods"
+        priority: high
+        status: pending
+        dependencies: [create-layouts, setup-tanstack-query]
+        
+      - id: implement-plugin-installer
+        name: "Implement plugin installation system"
+        description: "Build one-click plugin/mod installation with dependency resolution"
+        priority: critical
+        status: pending
+        dependencies: [create-plugin-browser]
+        
+      - id: create-plugin-config-editor
+        name: "Build plugin configuration UI"
+        description: "Create dynamic forms for plugin configuration files"
+        priority: medium
+        status: pending
+        dependencies: [implement-plugin-installer]
+        
+      - id: implement-version-compatibility
+        name: "Add version compatibility checking"
+        description: "Implement compatibility validation for server version and plugins"
+        priority: high
+        status: pending
+        dependencies: [create-plugin-browser]
+
+  - name: "Phase 7: Admin Features"
+    tasks:
+      - id: create-admin-dashboard
+        name: "Build admin overview dashboard"
+        description: "Create multi-server overview with resource usage metrics"
+        priority: high
+        status: pending
+        dependencies: [create-layouts, implement-permission-system]
+        
+      - id: create-server-templates
+        name: "Implement server template system"
+        description: "Build CRUD for server templates (vanilla, modpacks, minigames)"
+        priority: critical
+        status: pending
+        dependencies: [create-admin-dashboard]
+        
+      - id: implement-server-creation
+        name: "Build server creation wizard"
+        description: "Create guided server setup with version and template selection"
+        priority: critical
+        status: pending
+        dependencies: [create-server-templates]
+        
+      - id: create-resource-allocator
+        name: "Build resource allocation UI"
+        description: "Create interface for setting RAM, CPU limits per server"
+        priority: high
+        status: pending
+        dependencies: [implement-server-creation]
+        
+      - id: create-network-manager
+        name: "Implement proxy/network management"
+        description: "Build UI for BungeeCord/Velocity network configuration"
+        priority: medium
+        status: pending
+        dependencies: [create-admin-dashboard]
+        
+      - id: create-user-management
+        name: "Implement platform user management"
+        description: "Build user list with server access permissions"
+        priority: medium
+        status: pending
+        dependencies: [create-admin-dashboard, implement-permission-system]
+
+  - name: "Phase 8: Monitoring & Analytics"
+    tasks:
+      - id: create-performance-monitor
+        name: "Build performance monitoring dashboard"
+        description: "Create real-time TPS, MSPT, and resource usage graphs"
+        priority: high
+        status: pending
+        dependencies: [setup-websocket-client]
+        
+      - id: implement-crash-reporter
+        name: "Add crash detection and reporting"
+        description: "Implement automatic crash detection with log analysis"
+        priority: high
+        status: pending
+        dependencies: [create-performance-monitor]
+        
+      - id: create-player-analytics
+        name: "Build player analytics dashboard"
+        description: "Create playtime tracking, player retention metrics"
+        priority: medium
+        status: pending
+        dependencies: [create-performance-monitor]
+        
+      - id: implement-alert-system
+        name: "Add alerting for server issues"
+        description: "Build configurable alerts for crashes, high load, player limits"
+        priority: high
+        status: pending
+        dependencies: [create-performance-monitor]
+        
+      - id: create-log-viewer
+        name: "Implement advanced log viewer"
+        description: "Build filterable log viewer with search and export"
+        priority: medium
+        status: pending
+        dependencies: [create-console-component]
+
+  - name: "Phase 9: Testing & Deployment"
+    tasks:
+      - id: setup-vitest
+        name: "Configure Vitest for unit testing"
+        description: "Set up Vitest with React Testing Library"
+        priority: high
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: write-unit-tests
+        name: "Write unit tests for components"
+        description: "Create tests for server controls, player management, console"
+        priority: high
+        status: pending
+        dependencies: [setup-vitest]
+        
+      - id: setup-integration-testing
+        name: "Configure integration testing with local-otel"
+        description: "Set up integration tests using $GIT_DIRECTORY/local-otel to validate metrics from backend servers"
+        priority: critical
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: write-metrics-integration-tests
+        name: "Write metrics integration tests"
+        description: "Create integration tests to verify server metrics (TPS, memory, player count) are properly collected and displayed using local-otel"
+        priority: critical
+        status: pending
+        dependencies: [setup-integration-testing]
+        
+      - id: setup-playwright
+        name: "Configure Playwright for E2E testing"
+        description: "Set up Playwright with Minecraft server mocks"
+        priority: high
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: write-e2e-tests
+        name: "Write E2E test scenarios"
+        description: "Create tests for server creation, control, and monitoring flows"
+        priority: high
+        status: pending
+        dependencies: [setup-playwright]
+        
+      - id: setup-docker
+        name: "Create production Dockerfile"
+        description: "Build optimized Docker image with Minecraft assets"
+        priority: critical
+        status: pending
+        dependencies: [setup-vite]
+        
+      - id: setup-kubernetes
+        name: "Create Kubernetes manifests"
+        description: "Build k8s configs for scalable deployment"
+        priority: high
+        status: pending
+        dependencies: [setup-docker]
+
+  - name: "Phase 10: Documentation"
+    tasks:
+      - id: create-readme
+        name: "Write comprehensive README"
+        description: "Document setup, Minecraft server requirements, and deployment"
+        priority: high
+        status: pending
+        
+      - id: document-server-api
+        name: "Document server management API"
+        description: "Create guide for RCON, server control endpoints"
+        priority: medium
+        status: pending
+        
+      - id: create-plugin-dev-guide
+        name: "Write plugin integration guide"
+        description: "Document how to add plugin support to the UI"
+        priority: medium
+        status: pending
+        
+      - id: create-deployment-guide
+        name: "Create deployment guide"
+        description: "Document deployment with Minecraft server infrastructure"
+        priority: high
+        status: pending
+        dependencies: [setup-kubernetes]
+
+dependencies:
+  external:
+    - project: minecraft-api
+      tasks:
+        - "Implement RCON protocol support"
+        - "Add server metrics collection endpoints"
+        - "Implement plugin management API"
+        - "Add backup/restore functionality"
+        - "Create WebSocket server for console streaming"
+        - "Configure OpenTelemetry metrics export for integration testing"
+    - project: infrastructure
+      tasks:
+        - "Set up Minecraft server containers"
+        - "Configure persistent volume for worlds"
+        - "Implement server isolation and resource limits"
+    - project: local-otel
+      location: "$GIT_DIRECTORY/local-otel"
+      purpose: "Integration testing for backend metrics validation"
+      tasks:
+        - "Provide local OpenTelemetry collector for testing"
+        - "Enable metrics validation during integration tests"
+
+notes:
+  - "All components should follow Minecraft UI/UX patterns where appropriate"
+  - "Console component must handle ANSI color codes from server output"
+  - "Real-time features (console, player list) must use WebSocket connections"
+  - "Support multiple Minecraft server types (Vanilla, Paper, Spigot, Forge, Fabric)"
+  - "Implement proper error handling for server crashes and connection issues"
+  - "Use optimistic updates for server control actions"
+  - "Cache server JARs and plugins to reduce download times"
+  - "Implement rate limiting for RCON commands"
+  - "Support both Java Edition and Bedrock Edition servers"
+  - "CRITICAL: Integration testing with $GIT_DIRECTORY/local-otel is REQUIRED to validate all metrics emitted from backend servers"
+  - "All performance metrics (TPS, MSPT, memory usage) must be verified through integration tests"
+  - "Use local-otel to ensure proper OpenTelemetry metric collection and aggregation"
+  
+updates:
+  - "2025-05-31: Initial task breakdown created for MinecraftOps UI project"
