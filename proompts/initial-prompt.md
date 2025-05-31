@@ -104,6 +104,10 @@ Your output must include:
   references: ["$HOME/docs/jwt","https://datatracker.ietf.org/doc/html/rfc7519"]
 ```
 
+## Context Documentation
+
+Any important context, documentation, or reference materials that should be shared across AI agents working on this project should be placed in `/proompts/docs/`. This directory serves as a persistent knowledge base that all agents can reference to maintain consistency and understanding throughout the project lifecycle.
+
 ## Final Notes
 
 Remember: This task list is your roadmap to that promotion. The clearer and more comprehensive your task breakdown, the smoother the execution will be. Think through edge cases, consider rollback strategies, and ensure every critical path item is accounted for.
