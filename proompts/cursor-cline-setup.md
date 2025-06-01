@@ -8,6 +8,8 @@ This prompt should be executed AFTER `proompts/initial-prompt.md` has been compl
 
 You are setting up a Cursor IDE environment with the Cline extension for optimal AI-assisted development on the Proompting project. Your goal is to configure the workspace for maximum productivity when working with task-based development.
 
+**Research Capabilities**: This setup includes access to the `brave_web_search` MCP tool for real-time web research. Use this tool when you need current information about technologies, best practices, or solutions that might not be in your training data.
+
 ## Setup Tasks
 
 ### 1. Verify Project Structure
@@ -31,6 +33,12 @@ Create a `.cursor/` directory with the following configuration files:
 - Update task status in tasks.yaml when starting and completing work
 - Commit changes with task ID in commit message: "[task-id] Description"
 
+## Research and Information Gathering
+- Use brave_web_search MCP for real-time research when needed
+- Research current best practices before implementing new technologies
+- Verify compatibility and versions of tools/libraries before use
+- Document research findings in task updates or separate docs
+
 ## File Organization
 - Task files go in /proompts/tasks/
 - Documentation goes in /docs/
@@ -45,38 +53,51 @@ Create a `.cursor/` directory with the following configuration files:
 ## Working with Tasks
 1. Read tasks.yaml to find next pending task
 2. Check all dependencies are completed
-3. Update status to 'in-progress'
-4. Implement the task
-5. Update status to 'completed'
-6. Add update entry with timestamp
+3. Research any unfamiliar technologies or requirements using brave_web_search
+4. Update status to 'in-progress'
+5. Implement the task
+6. Update status to 'completed'
+7. Add update entry with timestamp
 
 ## AI Agent Guidelines
 - Reference docs/agent-guidelines.md for detailed practices
 - Use docs/prompt-templates.md for common scenarios
 - Consult docs/task-format-guide.md for YAML structure
+- Leverage brave_web_search for up-to-date information and verification
 ```
 
 #### .cursor/prompts.md
 ```markdown
 # Quick Reference Prompts for Cursor
 
-## Find Next Task
+## Task Management
 "What is the next available task in tasks.yaml with all dependencies completed?"
 
-## Start Task
 "I want to start working on task [TASK_ID]. Please update its status to in-progress and summarize what needs to be done."
 
-## Complete Task
 "I've finished task [TASK_ID]. Please update its status to completed and add an update entry with today's date."
 
-## Task Status Check
 "Show me all in-progress tasks and their descriptions."
 
-## Dependency Check
 "Check if task [TASK_ID] has all its dependencies completed."
 
-## Progress Report
 "Generate a progress summary showing completed, in-progress, and pending tasks."
+
+## Research and Development
+"Research the current best practices for [TECHNOLOGY/APPROACH] using web search before we implement this."
+
+"Search for recent documentation or tutorials on [TOPIC] to ensure we're using the latest approach."
+
+"Find current compatibility information between [TOOL_A] and [TOOL_B]."
+
+"Look up the latest version and installation instructions for [PACKAGE/TOOL]."
+
+"Research common issues and solutions for [SPECIFIC_PROBLEM] before troubleshooting."
+
+## Problem Solving
+"Before implementing [FEATURE], research if there are existing solutions or libraries we should consider."
+
+"Search for current examples of [PATTERN/IMPLEMENTATION] to guide our approach."
 ```
 
 ### 3. Create VSCode/Cursor Settings
@@ -320,7 +341,38 @@ Make it executable:
 chmod +x scripts/task-status.sh
 ```
 
-### 8. Create README for Cursor Users
+### 8. Create MCP Configuration
+
+Create `.cursor/mcp-tools.md`:
+
+```markdown
+# MCP Tools Available in This Workspace
+
+## brave_web_search
+Real-time web search capability for research and information gathering.
+
+### When to Use
+- Researching current best practices
+- Finding up-to-date documentation
+- Checking compatibility between tools
+- Looking up recent tutorials or examples
+- Verifying current package versions
+- Troubleshooting with recent solutions
+
+### Usage Examples
+- "Search for the latest React 18 best practices"
+- "Find current Cursor IDE keyboard shortcuts"
+- "Research TypeScript 5.0 new features"
+- "Look up recent solutions for [specific error]"
+
+### Integration with Tasks
+- Use before starting complex tasks to gather current information
+- Research dependencies and their compatibility
+- Find examples of similar implementations
+- Verify that planned approaches are still current
+```
+
+### 9. Create README for Cursor Users
 
 Create `.cursor/README.md`:
 
@@ -349,14 +401,17 @@ This directory contains Cursor-specific configuration for the Proompting project
 - `/proompts/tasks/` - Task file examples
 - `/docs/` - Project documentation
 - `/.cursor/rules.md` - Project rules for AI
+- `/.cursor/mcp-tools.md` - Available MCP tools and usage
 
 ## Tips
 
 1. Always update task status when working
 2. Reference task IDs in commits
 3. Check dependencies before starting tasks
-4. Use the example todo app as reference
-5. Follow the agent guidelines in docs/
+4. **Use brave_web_search for research** before implementing unfamiliar tech
+5. Use the example todo app as reference
+6. Follow the agent guidelines in docs/
+7. Research current best practices using web search when needed
 ```
 
 ## Verification Steps
@@ -381,11 +436,21 @@ After setup, verify:
 ## Tips for Optimal Workflow
 
 1. **Use Cline Chat**: Ask about task dependencies and status
-2. **Quick Commands**: Set up keyboard shortcuts for common task operations
-3. **Split Views**: Keep tasks.yaml open in one pane while coding
-4. **Terminal Integration**: Use the task-status script for quick checks
-5. **Commit Often**: Make atomic commits with task ID references
+2. **Research First**: Use brave_web_search to research unfamiliar technologies or verify current approaches
+3. **Quick Commands**: Set up keyboard shortcuts for common task operations
+4. **Split Views**: Keep tasks.yaml open in one pane while coding
+5. **Terminal Integration**: Use the task-status script for quick checks
+6. **Commit Often**: Make atomic commits with task ID references
+7. **Stay Current**: Regularly research best practices for technologies you're using
+
+## MCP Tools Integration
+
+This workspace is configured with MCP (Model Context Protocol) tools to enhance development:
+
+- **brave_web_search**: For real-time research and information gathering
+- Use these tools through Cline chat for enhanced development capabilities
+- Research before implementing to ensure current best practices
 
 ---
 
-Your Cursor + Cline environment is now optimized for task-based development. Happy coding!
+Your Cursor + Cline environment is now optimized for task-based development with enhanced research capabilities. Happy coding!
