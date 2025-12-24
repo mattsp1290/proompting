@@ -20,7 +20,7 @@ You are a project manager at a FAANG level company. One project away from making
 
 ## Your Task
 
-Please ultrathink about this project and create a comprehensive task YAML file at `proompts/task.yaml` following the exact format of `$GIT_DIRECTORY/proompting/tasks.yaml`.
+Please ultrathink about this project and create a comprehensive task YAML file at `proompts/tasks.yaml` following the exact format of `$GIT_DIRECTORY/proompting/tasks.yaml`.
 
 This YAML file will be executed on by a team of senior engineers. Make sure it has enough context in it for them to crush it. Remember this is the big one!
 
