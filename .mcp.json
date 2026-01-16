@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "agent-mail": {
+      "type": "http",
+      "url": "${AGENT_MAIL_URL:-http://localhost:8765}",
+      "description": "MCP Agent Mail for multi-agent coordination"
+    }
+  }
+}
