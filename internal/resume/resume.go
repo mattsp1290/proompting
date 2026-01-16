@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
-	"time"
 
+	"github.com/vibes-project/vibes/internal/beads"
+	"github.com/vibes-project/vibes/internal/git"
 	"github.com/vibes-project/vibes/internal/runner"
 )
 
@@ -15,16 +15,8 @@ import (
 type Options struct {
 	Dir     string               // Target directory (defaults to cwd)
 	Verbose bool                 // Include full protocol details
+	NoFetch bool                 // Skip fetching from remote
 	Runner  runner.CommandRunner // Command runner (defaults to runner.Default)
-}
-
-// TaskInfo holds information about the current task
-type TaskInfo struct {
-	ID          string
-	Title       string
-	Status      string
-	Branch      string
-	ProjectName string
 }
 
 // Run executes the resume command and returns the prompt to stdout
@@ -50,8 +42,8 @@ func Run(opts Options) error {
 	out.WriteString(fmt.Sprintf("# Resume Work in %s\n\n", projectName))
 
 	// Get current branch and task context
-	branch := getCurrentBranch(dir, r)
-	task := detectCurrentTask(dir, branch, r)
+	branch := git.GetCurrentBranch(dir, r)
+	task := beads.DetectCurrentTask(dir, branch, r)
 	task.ProjectName = projectName
 
 	// Current work section
@@ -76,7 +68,7 @@ func Run(opts Options) error {
 	out.WriteString("## Work in Progress\n")
 
 	// Uncommitted changes
-	uncommitted := getUncommittedChanges(dir, r)
+	uncommitted := git.GetWorkingTreeStatus(dir, r)
 	if uncommitted != "" {
 		out.WriteString(fmt.Sprintf("- **Uncommitted changes**: %s\n", uncommitted))
 	} else {
@@ -84,9 +76,9 @@ func Run(opts Options) error {
 	}
 
 	// Recent commits on branch
-	commits := getBranchCommits(dir, branch, r)
+	commits := git.GetBranchCommits(dir, branch, r)
 	if commits != "" {
-		commitCount := countLines(commits)
+		commitCount := git.CountLines(commits)
 		out.WriteString(fmt.Sprintf("- **Commits on branch**: %d\n", commitCount))
 	}
 	out.WriteString("\n")
@@ -100,7 +92,7 @@ func Run(opts Options) error {
 	}
 
 	// Pending attention section
-	pendingItems := getPendingItems(dir, task, r)
+	pendingItems := getPendingItems(dir, task, r, !opts.NoFetch)
 	if len(pendingItems) > 0 {
 		out.WriteString("## Pending Attention\n")
 		for _, item := range pendingItems {
@@ -117,208 +109,21 @@ func Run(opts Options) error {
 	return nil
 }
 
-func getCurrentBranch(dir string, r runner.CommandRunner) string {
-	branch, err := r.Run(dir, "git", "rev-parse", "--abbrev-ref", "HEAD")
-	if err != nil {
-		return ""
-	}
-	return branch
-}
-
-func detectCurrentTask(dir string, branch string, r runner.CommandRunner) TaskInfo {
-	task := TaskInfo{Branch: branch}
-
-	// Check if beads is initialized
-	beadsDir := filepath.Join(dir, ".beads")
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
-		// Try to extract from branch name as fallback
-		task.ID = extractBeadIDFromBranch(branch)
-		return task
-	}
-
-	// Try to find in-progress tasks
-	output, err := r.RunWithTimeout(dir, 5*time.Second, "bd", "list", "--status", "in_progress")
-	if err == nil && output != "" {
-		// Parse first in-progress task
-		lines := strings.Split(output, "\n")
-		for _, line := range lines {
-			if id, title := parseBeadLine(line); id != "" {
-				task.ID = id
-				task.Title = title
-				task.Status = "in_progress"
-				return task
-			}
-		}
-	}
-
-	// Fallback: try to extract bead ID from branch name
-	if beadID := extractBeadIDFromBranch(branch); beadID != "" {
-		task.ID = beadID
-		// Try to get the title and status
-		if output, err := r.RunWithTimeout(dir, 5*time.Second, "bd", "show", beadID); err == nil {
-			task.Title = extractTitleFromShow(output)
-			task.Status = extractStatusFromShow(output)
-		}
-	}
-
-	return task
-}
-
-func extractBeadIDFromBranch(branch string) string {
-	// Match patterns like: feature/bd-123-description, bd-456, BEAD-789
-	patterns := []string{
-		`(bd-\d+)`,
-		`(BEAD-\d+)`,
-		`(bead-\d+)`,
-	}
-
-	for _, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
-		if matches := re.FindStringSubmatch(branch); len(matches) > 1 {
-			return matches[1]
-		}
-	}
-	return ""
-}
-
-func parseBeadLine(line string) (id, title string) {
-	// Parse format like: "bd-123  Some task title  [status]"
-	line = strings.TrimSpace(line)
-	if line == "" {
-		return "", ""
-	}
-
-	// Look for bd-XXXX pattern at the start
-	re := regexp.MustCompile(`^(bd-\d+)\s+(.+?)(?:\s+\[.+\])?$`)
-	if matches := re.FindStringSubmatch(line); len(matches) >= 3 {
-		return matches[1], strings.TrimSpace(matches[2])
-	}
-
-	// Simpler fallback: just get the ID
-	reSimple := regexp.MustCompile(`^(bd-\d+)`)
-	if matches := reSimple.FindStringSubmatch(line); len(matches) > 1 {
-		return matches[1], ""
-	}
-
-	return "", ""
-}
-
-func extractTitleFromShow(output string) string {
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "Title:") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "Title:"))
-		}
-	}
-	return ""
-}
-
-func extractStatusFromShow(output string) string {
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "Status:") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "Status:"))
-		}
-	}
-	return ""
-}
-
-func getUncommittedChanges(dir string, r runner.CommandRunner) string {
-	status, err := r.Run(dir, "git", "status", "--porcelain")
-	if err != nil {
-		return ""
-	}
-
-	if status == "" {
-		return ""
-	}
-
-	lines := strings.Split(strings.TrimSpace(status), "\n")
-	modified := 0
-	untracked := 0
-	staged := 0
-
-	for _, line := range lines {
-		if len(line) < 2 {
-			continue
-		}
-		index := line[0]
-		worktree := line[1]
-		if index == '?' {
-			untracked++
-		} else if index != ' ' {
-			staged++
-		}
-		if worktree != ' ' && worktree != '?' {
-			modified++
-		}
-	}
-
-	parts := []string{}
-	if staged > 0 {
-		parts = append(parts, fmt.Sprintf("%d staged", staged))
-	}
-	if modified > 0 {
-		parts = append(parts, fmt.Sprintf("%d modified", modified))
-	}
-	if untracked > 0 {
-		parts = append(parts, fmt.Sprintf("%d untracked", untracked))
-	}
-
-	if len(parts) > 0 {
-		return strings.Join(parts, ", ")
-	}
-	return ""
-}
-
-func getBranchCommits(dir string, branch string, r runner.CommandRunner) string {
-	if branch == "" || branch == "main" || branch == "master" {
-		// On main branch, show recent commits instead
-		output, err := r.Run(dir, "git", "log", "-5", "--oneline")
-		if err != nil {
-			return ""
-		}
-		return output
-	}
-
-	// Get commits on this branch that aren't on main/master
-	output, err := r.Run(dir, "git", "log", "--oneline", "main..HEAD")
-	if err != nil || output == "" {
-		output, err = r.Run(dir, "git", "log", "--oneline", "master..HEAD")
-		if err != nil {
-			return ""
-		}
-	}
-
-	if output == "" {
-		// No commits ahead of main, show recent commits
-		output, _ = r.Run(dir, "git", "log", "-5", "--oneline")
-	}
-
-	return output
-}
-
-func countLines(s string) int {
-	if s == "" {
-		return 0
-	}
-	return len(strings.Split(strings.TrimSpace(s), "\n"))
-}
-
-func getPendingItems(dir string, task TaskInfo, r runner.CommandRunner) []string {
+func getPendingItems(dir string, task beads.TaskInfo, r runner.CommandRunner, fetch bool) []string {
 	var items []string
 
 	// Check for stashed changes
-	stash, err := r.Run(dir, "git", "stash", "list")
-	if err == nil && stash != "" {
-		stashCount := countLines(stash)
+	stashCount := git.GetStashCount(dir, r)
+	if stashCount > 0 {
 		items = append(items, fmt.Sprintf("⚠️ %d stashed change(s) - consider applying or dropping", stashCount))
 	}
 
 	// Check if branch is behind remote
-	behindAhead := checkRemoteStatus(dir, r)
-	if behindAhead != "" {
-		items = append(items, behindAhead)
+	remoteStatus := git.CheckRemoteStatus(dir, r, fetch)
+	if remoteStatus.Behind > 0 {
+		items = append(items, fmt.Sprintf("⚠️ Branch is %s - consider pulling", remoteStatus.Info))
+	} else if remoteStatus.Ahead > 0 {
+		items = append(items, fmt.Sprintf("📤 Branch is %s - remember to push", remoteStatus.Info))
 	}
 
 	// Hint about checking inbox if task has a review thread
@@ -329,41 +134,7 @@ func getPendingItems(dir string, task TaskInfo, r runner.CommandRunner) []string
 	return items
 }
 
-func checkRemoteStatus(dir string, r runner.CommandRunner) string {
-	// Fetch first to get latest remote state (with timeout to avoid hanging)
-	_, _ = r.RunWithTimeout(dir, 5*time.Second, "git", "fetch", "--quiet")
-
-	// Check status relative to upstream
-	output, err := r.Run(dir, "git", "status", "-sb")
-	if err != nil {
-		return ""
-	}
-
-	// Look for [ahead N] or [behind N] in the first line
-	lines := strings.Split(output, "\n")
-	if len(lines) == 0 {
-		return ""
-	}
-
-	firstLine := lines[0]
-	if strings.Contains(firstLine, "[") {
-		// Extract the tracking info
-		re := regexp.MustCompile(`\[([^\]]+)\]`)
-		if matches := re.FindStringSubmatch(firstLine); len(matches) > 1 {
-			info := matches[1]
-			if strings.Contains(info, "behind") {
-				return fmt.Sprintf("⚠️ Branch is %s - consider pulling", info)
-			}
-			if strings.Contains(info, "ahead") {
-				return fmt.Sprintf("📤 Branch is %s - remember to push", info)
-			}
-		}
-	}
-
-	return ""
-}
-
-func getProtocol(task TaskInfo, verbose bool) string {
+func getProtocol(task beads.TaskInfo, verbose bool) string {
 	taskID := task.ID
 	if taskID == "" {
 		taskID = "<task-id>"
@@ -391,7 +162,7 @@ func getProtocol(task TaskInfo, verbose bool) string {
    file_reservation_paths(
        project_key="%s",
        agent_name="YourAgentIdentity",
-       patterns=["src/path/**"],
+       patterns=["<your-file-patterns>"],
        ttl_seconds=3600,
        exclusive=true
    )
@@ -408,12 +179,12 @@ Continue working on the current task.
 `, taskID, projectKey)
 	}
 
-	return fmt.Sprintf(`1. Check inbox for pending messages or review feedback
+	return `1. Check inbox for pending messages or review feedback
 2. Verify file reservations are still valid
-3. Pull if behind remote: `+"`git pull`"+`
+3. Pull if behind remote: ` + "`git pull`" + `
 4. Continue implementation from current state
-5. When complete: `+"`claude \"$(vibes done)\"`"+`
+5. When complete: ` + "`claude \"$(vibes done)\"`" + `
 
 Continue working on the current task.
-`)
+`
 }

@@ -24,6 +24,7 @@ var (
 	nextVerbose   bool
 	doneVerbose   bool
 	resumeVerbose bool
+	resumeNoFetch bool
 )
 
 func main() {
@@ -104,6 +105,7 @@ This helps you continue seamlessly by:
 		RunE: runResume,
 	}
 	resumeCmd.Flags().BoolVarP(&resumeVerbose, "verbose", "v", false, "Include full protocol details")
+	resumeCmd.Flags().BoolVar(&resumeNoFetch, "no-fetch", false, "Skip fetching from remote (faster, but may miss remote changes)")
 	rootCmd.AddCommand(resumeCmd)
 
 	if err := rootCmd.Execute(); err != nil {
@@ -172,6 +174,7 @@ func runDone(cmd *cobra.Command, args []string) error {
 func runResume(cmd *cobra.Command, args []string) error {
 	opts := resume.Options{
 		Verbose: resumeVerbose,
+		NoFetch: resumeNoFetch,
 	}
 	return resume.Run(opts)
 }

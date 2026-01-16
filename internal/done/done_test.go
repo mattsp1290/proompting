@@ -1,14 +1,11 @@
 package done
 
 import (
-	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/vibes-project/vibes/internal/runner"
+	"github.com/vibes-project/vibes/internal/beads"
 )
 
 // MockRunner is a mock implementation of runner.CommandRunner for testing
@@ -31,235 +28,8 @@ func (m *MockRunner) RunWithTimeout(dir string, timeout time.Duration, command s
 	return "", nil
 }
 
-func TestExtractBeadIDFromBranch(t *testing.T) {
-	testCases := []struct {
-		branch   string
-		expected string
-	}{
-		{"feature/bd-123-add-feature", "bd-123"},
-		{"bd-456", "bd-456"},
-		{"feature/BEAD-789-fix", "BEAD-789"},
-		{"main", ""},
-		{"feature/some-feature", ""},
-		{"bd-123", "bd-123"},
-		{"hotfix/bead-42-urgent", "bead-42"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.branch, func(t *testing.T) {
-			result := extractBeadIDFromBranch(tc.branch)
-			if result != tc.expected {
-				t.Errorf("extractBeadIDFromBranch(%q) = %q, want %q", tc.branch, result, tc.expected)
-			}
-		})
-	}
-}
-
-func TestParseBeadLine(t *testing.T) {
-	testCases := []struct {
-		line          string
-		expectedID    string
-		expectedTitle string
-	}{
-		{"bd-123  Some task title  [in_progress]", "bd-123", "Some task title"},
-		{"bd-456  Another task", "bd-456", "Another task"},
-		{"bd-789", "bd-789", ""},
-		{"", "", ""},
-		{"not a bead line", "", ""},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.line, func(t *testing.T) {
-			id, title := parseBeadLine(tc.line)
-			if id != tc.expectedID {
-				t.Errorf("parseBeadLine(%q) id = %q, want %q", tc.line, id, tc.expectedID)
-			}
-			if title != tc.expectedTitle {
-				t.Errorf("parseBeadLine(%q) title = %q, want %q", tc.line, title, tc.expectedTitle)
-			}
-		})
-	}
-}
-
-func TestGetCurrentBranch(t *testing.T) {
-	t.Run("returns branch name", func(t *testing.T) {
-		mock := &MockRunner{
-			RunFunc: func(dir string, command string, args ...string) (string, error) {
-				if command == "git" && len(args) >= 2 && args[0] == "rev-parse" {
-					return "feature/bd-123-test", nil
-				}
-				return "", nil
-			},
-		}
-
-		result := getCurrentBranch("/test/dir", mock)
-		if result != "feature/bd-123-test" {
-			t.Errorf("expected 'feature/bd-123-test', got %q", result)
-		}
-	})
-
-	t.Run("returns empty on error", func(t *testing.T) {
-		mock := &MockRunner{
-			RunFunc: func(dir string, command string, args ...string) (string, error) {
-				return "", errors.New("not a git repo")
-			},
-		}
-
-		result := getCurrentBranch("/test/dir", mock)
-		if result != "" {
-			t.Errorf("expected empty string, got %q", result)
-		}
-	})
-}
-
-func TestGetBranchCommits(t *testing.T) {
-	t.Run("feature branch with commits", func(t *testing.T) {
-		mock := &MockRunner{
-			RunFunc: func(dir string, command string, args ...string) (string, error) {
-				// args: ["log", "--oneline", "main..HEAD"]
-				if command == "git" && len(args) >= 3 && args[2] == "main..HEAD" {
-					return "abc123 Add feature\ndef456 Fix bug", nil
-				}
-				return "", nil
-			},
-		}
-
-		result := getBranchCommits("/test/dir", "feature/test", mock)
-		if !strings.Contains(result, "abc123 Add feature") {
-			t.Errorf("expected commits, got %q", result)
-		}
-	})
-
-	t.Run("main branch shows recent commits", func(t *testing.T) {
-		mock := &MockRunner{
-			RunFunc: func(dir string, command string, args ...string) (string, error) {
-				// args: ["log", "-5", "--oneline"]
-				if command == "git" && len(args) >= 2 && args[0] == "log" && args[1] == "-5" {
-					return "abc123 Recent commit\ndef456 Older commit", nil
-				}
-				return "", nil
-			},
-		}
-
-		result := getBranchCommits("/test/dir", "main", mock)
-		if !strings.Contains(result, "abc123 Recent commit") {
-			t.Errorf("expected recent commits for main, got %q", result)
-		}
-	})
-
-	t.Run("falls back to master if main fails", func(t *testing.T) {
-		mock := &MockRunner{
-			RunFunc: func(dir string, command string, args ...string) (string, error) {
-				// args: ["log", "--oneline", "main..HEAD"] or ["log", "--oneline", "master..HEAD"]
-				if command == "git" && len(args) >= 3 {
-					if args[2] == "main..HEAD" {
-						return "", errors.New("main not found")
-					}
-					if args[2] == "master..HEAD" {
-						return "abc123 Commit from master", nil
-					}
-				}
-				return "", nil
-			},
-		}
-
-		result := getBranchCommits("/test/dir", "feature/test", mock)
-		if !strings.Contains(result, "abc123 Commit from master") {
-			t.Errorf("expected master fallback, got %q", result)
-		}
-	})
-}
-
-func TestGetWorkingTreeStatus(t *testing.T) {
-	testCases := []struct {
-		name     string
-		status   string
-		expected string
-	}{
-		{"clean", "", "Clean"},
-		{"staged only", "A  file.go", "1 staged"},
-		{"modified only", "MM file.go", "1 staged, 1 modified"},
-		{"untracked only", "?? file.go", "1 untracked"},
-		{"mixed", "A  a.go\n M b.go\n?? c.go", "1 staged, 1 modified, 1 untracked"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mock := &MockRunner{
-				RunFunc: func(dir string, command string, args ...string) (string, error) {
-					return tc.status, nil
-				},
-			}
-
-			result := getWorkingTreeStatus("/test/dir", mock)
-			if result != tc.expected {
-				t.Errorf("getWorkingTreeStatus() = %q, want %q", result, tc.expected)
-			}
-		})
-	}
-}
-
-func TestDetectCurrentTask(t *testing.T) {
-	t.Run("no beads directory uses branch", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		mock := &MockRunner{}
-
-		task := detectCurrentTask(tmpDir, "feature/bd-123-test", mock)
-
-		if task.ID != "bd-123" {
-			t.Errorf("expected ID 'bd-123', got %q", task.ID)
-		}
-	})
-
-	t.Run("with beads finds in-progress task", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
-			t.Fatal(err)
-		}
-
-		mock := &MockRunner{
-			RunWithTimeoutFunc: func(dir string, timeout time.Duration, command string, args ...string) (string, error) {
-				if command == "bd" && len(args) >= 2 && args[0] == "list" {
-					return "bd-456  Working on feature  [in_progress]", nil
-				}
-				return "", nil
-			},
-		}
-
-		task := detectCurrentTask(tmpDir, "feature/test", mock)
-
-		if task.ID != "bd-456" {
-			t.Errorf("expected ID 'bd-456', got %q", task.ID)
-		}
-		if task.Title != "Working on feature" {
-			t.Errorf("expected title 'Working on feature', got %q", task.Title)
-		}
-	})
-
-	t.Run("falls back to branch when bd list fails", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		beadsDir := filepath.Join(tmpDir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
-			t.Fatal(err)
-		}
-
-		mock := &MockRunner{
-			RunWithTimeoutFunc: func(dir string, timeout time.Duration, command string, args ...string) (string, error) {
-				return "", errors.New("bd not found")
-			},
-		}
-
-		task := detectCurrentTask(tmpDir, "feature/bd-789-fallback", mock)
-
-		if task.ID != "bd-789" {
-			t.Errorf("expected ID 'bd-789', got %q", task.ID)
-		}
-	})
-}
-
 func TestGetProtocol(t *testing.T) {
-	task := TaskInfo{ID: "bd-123", Title: "Test task", Branch: "feature/test", ProjectName: "my-project"}
+	task := beads.TaskInfo{ID: "bd-123", Title: "Test task", Branch: "feature/test", ProjectName: "my-project"}
 
 	t.Run("non-verbose protocol", func(t *testing.T) {
 		result := getProtocol(task, false)
@@ -290,7 +60,7 @@ func TestGetProtocol(t *testing.T) {
 	})
 
 	t.Run("uses placeholder when no task ID", func(t *testing.T) {
-		emptyTask := TaskInfo{}
+		emptyTask := beads.TaskInfo{}
 		result := getProtocol(emptyTask, false)
 
 		if !strings.Contains(result, "<task-id>") {
@@ -299,35 +69,13 @@ func TestGetProtocol(t *testing.T) {
 	})
 
 	t.Run("uses default project-name when no project name", func(t *testing.T) {
-		taskNoProject := TaskInfo{ID: "bd-456"}
+		taskNoProject := beads.TaskInfo{ID: "bd-456"}
 		result := getProtocol(taskNoProject, true)
 
 		if !strings.Contains(result, "project_key=\"project-name\"") {
 			t.Error("expected default project-name when no project name set")
 		}
 	})
-}
-
-func TestCountLines(t *testing.T) {
-	testCases := []struct {
-		input    string
-		expected int
-	}{
-		{"", 0},
-		{"one line", 1},
-		{"line1\nline2", 2},
-		{"line1\nline2\nline3", 3},
-		{"line1\nline2\n", 2},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.input, func(t *testing.T) {
-			result := countLines(tc.input)
-			if result != tc.expected {
-				t.Errorf("countLines(%q) = %d, want %d", tc.input, result, tc.expected)
-			}
-		})
-	}
 }
 
 func TestRun(t *testing.T) {
@@ -394,43 +142,5 @@ func TestRun(t *testing.T) {
 
 		// Should not panic
 		_ = Run(opts)
-	})
-}
-
-func TestDefaultRunner(t *testing.T) {
-	r := &runner.Default{}
-
-	t.Run("Run with valid command", func(t *testing.T) {
-		result, err := r.Run(".", "echo", "hello")
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if result != "hello" {
-			t.Errorf("expected 'hello', got: %s", result)
-		}
-	})
-
-	t.Run("Run with invalid command", func(t *testing.T) {
-		_, err := r.Run(".", "nonexistent-command-12345")
-		if err == nil {
-			t.Error("expected error for nonexistent command")
-		}
-	})
-
-	t.Run("RunWithTimeout with valid command", func(t *testing.T) {
-		result, err := r.RunWithTimeout(".", 5*time.Second, "echo", "test")
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if result != "test" {
-			t.Errorf("expected 'test', got: %s", result)
-		}
-	})
-
-	t.Run("RunWithTimeout with command not in PATH", func(t *testing.T) {
-		_, err := r.RunWithTimeout(".", 5*time.Second, "nonexistent-command-12345")
-		if err == nil {
-			t.Error("expected error for command not in PATH")
-		}
 	})
 }

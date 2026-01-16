@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vibes-project/vibes/internal/beads"
+	"github.com/vibes-project/vibes/internal/git"
 	"github.com/vibes-project/vibes/internal/runner"
 )
 
@@ -69,53 +71,22 @@ func getGitContext(dir string, r runner.CommandRunner) string {
 	var out strings.Builder
 
 	// Current branch
-	branch, err := r.Run(dir, "git", "rev-parse", "--abbrev-ref", "HEAD")
-	if err == nil && branch != "" {
+	branch := git.GetCurrentBranch(dir, r)
+	if branch != "" {
 		out.WriteString(fmt.Sprintf("- **Branch**: %s\n", branch))
 	}
 
 	// Status summary
-	status, _ := r.Run(dir, "git", "status", "--porcelain")
+	status := git.GetWorkingTreeStatus(dir, r)
 	if status == "" {
 		out.WriteString("- **Status**: Clean working tree\n")
 	} else {
-		lines := strings.Split(strings.TrimSpace(status), "\n")
-		modified := 0
-		untracked := 0
-		staged := 0
-		for _, line := range lines {
-			if len(line) < 2 {
-				continue
-			}
-			index := line[0]
-			worktree := line[1]
-			if index == '?' {
-				untracked++
-			} else if index != ' ' {
-				staged++
-			}
-			if worktree != ' ' && worktree != '?' {
-				modified++
-			}
-		}
-		parts := []string{}
-		if staged > 0 {
-			parts = append(parts, fmt.Sprintf("%d staged", staged))
-		}
-		if modified > 0 {
-			parts = append(parts, fmt.Sprintf("%d modified", modified))
-		}
-		if untracked > 0 {
-			parts = append(parts, fmt.Sprintf("%d untracked", untracked))
-		}
-		if len(parts) > 0 {
-			out.WriteString(fmt.Sprintf("- **Status**: %s\n", strings.Join(parts, ", ")))
-		}
+		out.WriteString(fmt.Sprintf("- **Status**: %s\n", status))
 	}
 
 	// Recent commit
-	recentCommit, err := r.Run(dir, "git", "log", "-1", "--format=%s (%ar)")
-	if err == nil && recentCommit != "" {
+	recentCommit := git.GetRecentCommit(dir, r)
+	if recentCommit != "" {
 		out.WriteString(fmt.Sprintf("- **Recent**: \"%s\"\n", recentCommit))
 	}
 
@@ -124,8 +95,7 @@ func getGitContext(dir string, r runner.CommandRunner) string {
 
 func getTaskRecommendation(dir string, r runner.CommandRunner) string {
 	// Check if beads is initialized
-	beadsDir := filepath.Join(dir, ".beads")
-	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
+	if !beads.IsInitialized(dir) {
 		return ""
 	}
 
@@ -155,7 +125,7 @@ func getProtocol(verbose bool) string {
    file_reservation_paths(
        project_key="project-name",
        agent_name="YourAgentIdentity",
-       patterns=["src/path/**"],
+       patterns=["<your-file-patterns>"],
        ttl_seconds=3600,
        exclusive=true
    )
