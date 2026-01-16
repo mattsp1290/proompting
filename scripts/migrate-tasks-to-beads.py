@@ -9,16 +9,22 @@ Usage:
     python migrate-tasks-to-beads.py tasks.yaml > setup-beads.sh
     python migrate-tasks-to-beads.py tasks.yaml --execute  # Run directly
     python migrate-tasks-to-beads.py tasks.yaml --dry-run  # Preview only
+    python migrate-tasks-to-beads.py tasks.yaml --fallback-claude  # Use Claude on parse failure
 """
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
 
 
 def slugify(text: str) -> str:
@@ -213,6 +219,22 @@ def generate_json_mapping(data: dict) -> str:
     return json.dumps(mapping, indent=2)
 
 
+def run_claude_migration(yaml_path: Path, verify: bool = False) -> int:
+    """Fall back to Claude Code for migration."""
+    script_dir = Path(__file__).parent
+    claude_script = script_dir / 'migrate-with-claude.sh'
+
+    if not claude_script.exists():
+        print(f"Error: Claude migration script not found at {claude_script}", file=sys.stderr)
+        return 1
+
+    cmd = ['bash', str(claude_script), str(yaml_path)]
+    if verify:
+        cmd.append('--verify')
+
+    return subprocess.call(cmd)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Convert tasks.yaml to Beads format'
@@ -226,6 +248,12 @@ def main():
                         help='Output JSON mapping instead of shell script')
     parser.add_argument('--output', '-o', type=Path,
                         help='Write output to file instead of stdout')
+    parser.add_argument('--fallback-claude', action='store_true',
+                        help='Use Claude Code if Python parsing fails')
+    parser.add_argument('--claude-only', action='store_true',
+                        help='Skip Python parsing, use Claude Code directly')
+    parser.add_argument('--verify', action='store_true',
+                        help='Verify all tasks migrated (with --fallback-claude)')
 
     args = parser.parse_args()
 
@@ -233,8 +261,33 @@ def main():
         print(f"Error: {args.yaml_file} not found", file=sys.stderr)
         sys.exit(1)
 
-    # Parse the YAML
-    data = parse_tasks_yaml(args.yaml_file)
+    # Claude-only mode
+    if args.claude_only:
+        print("Using Claude Code for migration...", file=sys.stderr)
+        sys.exit(run_claude_migration(args.yaml_file, args.verify))
+
+    # Check YAML availability
+    if not YAML_AVAILABLE:
+        if args.fallback_claude:
+            print("PyYAML not available, falling back to Claude Code...", file=sys.stderr)
+            sys.exit(run_claude_migration(args.yaml_file, args.verify))
+        else:
+            print("Error: PyYAML not installed. Install with: pip install pyyaml", file=sys.stderr)
+            print("Or use --fallback-claude to use Claude Code instead", file=sys.stderr)
+            sys.exit(1)
+
+    # Try to parse the YAML
+    try:
+        data = parse_tasks_yaml(args.yaml_file)
+    except Exception as e:
+        if args.fallback_claude:
+            print(f"YAML parsing failed: {e}", file=sys.stderr)
+            print("Falling back to Claude Code...", file=sys.stderr)
+            sys.exit(run_claude_migration(args.yaml_file, args.verify))
+        else:
+            print(f"Error parsing YAML: {e}", file=sys.stderr)
+            print("Use --fallback-claude to try Claude Code instead", file=sys.stderr)
+            sys.exit(1)
 
     if args.json:
         output = generate_json_mapping(data)
@@ -255,7 +308,12 @@ def main():
             script_path = f.name
 
         try:
-            subprocess.run(['bash', script_path], check=True)
+            result = subprocess.run(['bash', script_path], check=False)
+            if result.returncode != 0 and args.fallback_claude:
+                print("Shell script execution failed, trying Claude Code...", file=sys.stderr)
+                sys.exit(run_claude_migration(args.yaml_file, args.verify))
+            elif result.returncode != 0:
+                sys.exit(result.returncode)
         finally:
             Path(script_path).unlink()
     else:
