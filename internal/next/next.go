@@ -2,6 +2,7 @@ package next
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -156,28 +157,20 @@ func runBeadsCmd(dir string, command string, args ...string) string {
 		return ""
 	}
 
-	cmd := exec.Command(path, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, path, args...)
 	cmd.Dir = dir
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = nil
 
-	// Set a timeout for beads commands
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Run()
-	}()
-
-	select {
-	case err := <-done:
-		if err != nil {
-			return ""
-		}
-		return strings.TrimSpace(stdout.String())
-	case <-time.After(10 * time.Second):
-		cmd.Process.Kill()
+	if err := cmd.Run(); err != nil {
 		return ""
 	}
+
+	return strings.TrimSpace(stdout.String())
 }
 
 func getProtocol(verbose bool) string {
