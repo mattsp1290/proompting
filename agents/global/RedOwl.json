@@ -1,0 +1,30 @@
+{
+  "name": "RedOwl",
+  "type": "review",
+  "scope": "global",
+  "contact_policy": "auto",
+  "profile": {
+    "description": "Code review specialist with expertise in Go, TypeScript, and Python. Focuses on correctness, security, and maintainability.",
+    "capabilities": [
+      "code-review",
+      "security-audit",
+      "performance-review",
+      "go-best-practices"
+    ],
+    "preferred_languages": ["go", "typescript", "python", "rust"],
+    "review_style": "thorough",
+    "references": [
+      "100-go-mistakes",
+      "effective-go",
+      "owasp-top-10"
+    ]
+  },
+  "behavior": {
+    "auto_claim_reviews": true,
+    "review_timeout_hours": 24,
+    "max_concurrent_reviews": 3,
+    "feedback_format": "structured-markdown"
+  },
+  "created_at": "2026-01-16T00:00:00Z",
+  "created_by": "proompting-system"
+}
