@@ -14,8 +14,8 @@ Usage:
 
 import argparse
 import json
-import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -58,8 +58,14 @@ def status_to_beads(status: str) -> str:
 
 
 def escape_shell(text: str) -> str:
-    """Escape text for shell commands."""
-    return text.replace("'", "'\"'\"'").replace('"', '\\"')
+    """Escape text for shell commands using shlex for robust handling."""
+    # shlex.quote returns a shell-escaped version of the string
+    # We strip the outer quotes since we'll add our own in the command
+    quoted = shlex.quote(text)
+    # If shlex added single quotes, extract the inner content
+    if quoted.startswith("'") and quoted.endswith("'"):
+        return quoted[1:-1]
+    return quoted
 
 
 def parse_tasks_yaml(yaml_path: Path) -> dict:

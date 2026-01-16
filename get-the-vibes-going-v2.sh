@@ -203,7 +203,7 @@ fi
 # ==========================================
 print_header "Step 3: MCP Agent Mail"
 
-if curl -s http://localhost:8765/health &> /dev/null 2>&1; then
+if curl -s --max-time 2 http://localhost:8765/health &> /dev/null 2>&1; then
     print_success "Agent Mail server is running on :8765"
 else
     print_info "Agent Mail server not detected"
