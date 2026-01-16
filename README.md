@@ -4,25 +4,18 @@ Get up and vibe coding quickly with AI-powered task management.
 
 ## Overview
 
-Proompting provides a framework for managing complex projects with AI-powered task execution. It includes prompt templates that structure project planning and task management for maximum efficiency.
-
-**Two workflows are available:**
-- **Beads Workflow** (Recommended) - Git-backed task graph with dependency tracking
-- **Legacy Workflow** - Static tasks.yaml file management
+Proompting provides a framework for managing complex projects with AI-powered task execution. It uses **Beads** for git-backed task graphs with dependency tracking, and **MCP Agent Mail** for multi-agent coordination.
 
 ## Requirements
 
 - Git
 - Bash/Zsh shell
-
-**For Beads Workflow (recommended):**
 - [Beads CLI (bd)](https://github.com/steveyegge/beads) - Task graph management
-- [Claude Code](https://github.com/anthropics/claude-code) - AI agent execution
-- [Beads Viewer (bv)](https://github.com/Dicklesworthstone/beads_viewer) - Optional, for AI task recommendations
+- [Claude Code](https://github.com/anthropics/claude-code) - AI agent execution (optional but recommended)
+- [Beads Viewer (bv)](https://github.com/Dicklesworthstone/beads_viewer) - AI task recommendations (optional)
+- [MCP Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) - Multi-agent coordination (optional)
 
 ## Quick Start
-
-### Option 1: New Project with Beads (Recommended)
 
 ```bash
 # Set up a project with Beads task management
@@ -32,14 +25,7 @@ Proompting provides a framework for managing complex projects with AI-powered ta
 ./get-the-vibes-going-v2.sh /path/to/your-project --migrate
 ```
 
-### Option 2: Legacy Setup (tasks.yaml)
-
-```bash
-# Set up with classic tasks.yaml workflow
-./get-the-vibes-going.sh /path/to/your-project
-```
-
-## Beads Workflow (Recommended)
+## Workflow
 
 The Beads workflow uses a git-backed task graph with dependency tracking, enabling smarter task prioritization and multi-agent coordination.
 
@@ -62,7 +48,7 @@ The Beads workflow uses a git-backed task graph with dependency tracking, enabli
 │                                                                 │
 │  4. REQUEST REVIEW                                              │
 │     └── Use request-review.md                                   │
-│         └── Posts review request (MCP Agent Mail or PR)         │
+│         └── Posts review request via MCP Agent Mail             │
 │                                                                 │
 │  5. ACT ON REVIEW                                               │
 │     └── Use act-on-review.md                                    │
@@ -101,11 +87,11 @@ bd ready
 **4. Start Working**
 - Copy output from `bv --robot-triage`
 - Use `proompts/start-task.md` with the task details
-- AI agent creates branch, implements, commits
+- AI agent reserves files, creates branch, implements, commits
 
 **5. Request Review**
 - Use `proompts/request-review.md`
-- Agent posts review request via MCP Agent Mail or creates PR
+- Agent posts review request via MCP Agent Mail
 
 **6. Address Feedback**
 - Use `proompts/act-on-review.md`
@@ -121,7 +107,7 @@ bd update <bead-id> --status closed
 bv --robot-triage
 ```
 
-### Beads Commands
+## Beads Commands
 
 ```bash
 bd init                    # Initialize beads in a project
@@ -133,7 +119,7 @@ bd dep add <child> <parent>     # Add dependency
 bd graph --all             # Visualize dependencies
 ```
 
-### Beads Viewer (AI Recommendations)
+## Beads Viewer (AI Recommendations)
 
 ```bash
 bv                         # Interactive TUI
@@ -142,81 +128,31 @@ bv --robot-plan            # Parallel execution tracks
 bv --robot-insights        # PageRank, critical path analysis
 ```
 
-## Legacy Workflow (tasks.yaml)
+## MCP Agent Mail Integration
 
-The original workflow using static YAML files for task management.
-
-### Workflow Cycle
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  1. PLAN                                                        │
-│     └── Update initial-prompt.md for your project               │
-│         └── Pass to AI agent                                    │
-│             └── Agent creates tasks.yaml                        │
-│                                                                 │
-│  2. GET NEXT TASK                                               │
-│     └── Use get-next-task.md with AI agent                      │
-│         └── Agent reads tasks.yaml                              │
-│             └── Produces task execution prompt                  │
-│                                                                 │
-│  3. EXECUTE TASK                                                │
-│     └── Use the generated task prompt                           │
-│         └── AI agent implements the task                        │
-│                                                                 │
-│  4. REVIEW                                                      │
-│     └── Use pr-review.md                                        │
-│         └── Agent reviews changes                               │
-│                                                                 │
-│  5. ADDRESS FEEDBACK                                            │
-│     └── AI agent addresses review comments                      │
-│         └── Return to step 4 if more feedback                   │
-│             └── Otherwise return to step 2                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Legacy Prompts
-
-| Prompt | Purpose |
-|--------|---------|
-| `initial-prompt.md` | Customize and pass to AI to generate tasks.yaml |
-| `get-next-task.md` | AI reads tasks.yaml and produces task prompt |
-| `pr-review.md` | AI reviews changes and provides feedback |
-
-## Migrating from tasks.yaml to Beads
-
-If you have existing `tasks.yaml` files, migrate them to Beads:
+Agent Mail enables multi-agent coordination:
 
 ```bash
-# Using Claude Code (handles any YAML structure)
-./scripts/migrate-tasks-to-beads.sh path/to/tasks.yaml --verify
+# Start the server
+am
 
-# During project setup
-./get-the-vibes-going-v2.sh /path/to/project --migrate
+# Web UI
+open http://localhost:8765
 ```
 
-See [Migration Guide](proompts/docs/migration-guide.md) for detailed instructions.
+**Key features used in the workflow:**
+- **File reservations** - Prevent conflicts when multiple agents work in parallel
+- **Message threads** - Async communication for reviews and announcements
+- **Agent inboxes** - Each agent has a mailbox for notifications
 
 ## Prompt Reference
-
-### Beads Workflow Prompts
 
 | Prompt | Purpose |
 |--------|---------|
 | `initial-prompt-beads.md` | Create task graph with Beads |
 | `start-task.md` | Begin working on a selected task |
-| `request-review.md` | Request code review |
+| `request-review.md` | Request code review via Agent Mail |
 | `act-on-review.md` | Address review feedback |
-
-### Legacy Prompts
-
-| Prompt | Purpose |
-|--------|---------|
-| `initial-prompt.md` | Generate tasks.yaml |
-| `get-next-task.md` | Get next task from tasks.yaml |
-| `pr-review.md` | Review changes |
 
 ### Setup Guides
 
@@ -230,28 +166,25 @@ See [Migration Guide](proompts/docs/migration-guide.md) for detailed instruction
 ### Install Beads CLI
 
 ```bash
-# Via Go
 go install github.com/steveyegge/beads/cmd/bd@latest
 
 # Add to PATH if needed
 export PATH="$HOME/go/bin:$PATH"
 ```
 
-### Install Beads Viewer (Optional)
+### Install Beads Viewer
 
 ```bash
 go install github.com/Dicklesworthstone/beads_viewer@latest
 ```
 
-### Install Claude Code (Optional)
+### Install Claude Code
 
 ```bash
 npm install -g @anthropic-ai/claude-code
 ```
 
-### Install MCP Agent Mail (Optional)
-
-For multi-agent coordination:
+### Install MCP Agent Mail
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/mcp_agent_mail/main/scripts/install.sh" | bash -s -- --yes
@@ -267,28 +200,37 @@ am
 ```
 your-project/
 ├── proompts/                    # Prompt templates (gitignored)
-│   ├── initial-prompt-beads.md  # Task planning (Beads)
+│   ├── initial-prompt-beads.md  # Task planning
 │   ├── start-task.md            # Begin task
 │   ├── request-review.md        # Request review
 │   ├── act-on-review.md         # Address feedback
-│   ├── initial-prompt.md        # Task planning (legacy)
-│   ├── get-next-task.md         # Get next task (legacy)
-│   ├── pr-review.md             # Review (legacy)
 │   └── docs/                    # Documentation
 ├── .beads/                      # Beads task graph
 │   └── beads.db                 # Task database
 └── .gitignore                   # Includes proompts/, .beads/.cache/
 ```
 
+## Migrating from tasks.yaml
+
+If you have existing `tasks.yaml` files:
+
+```bash
+# Using Claude Code (handles any YAML structure)
+./scripts/migrate-tasks-to-beads.sh path/to/tasks.yaml --verify
+
+# During project setup
+./get-the-vibes-going-v2.sh /path/to/project --migrate
+```
+
+See [Migration Guide](proompts/docs/migration-guide.md) for details.
+
 ## Documentation
 
 - [Migration Guide](proompts/docs/migration-guide.md) - Migrate tasks.yaml to Beads
 - [Beads + Agent Mail Integration](proompts/docs/beads-agent-mail-integration.md) - Multi-agent setup
 - [Agent Guidelines](proompts/docs/agent-guidelines.md) - Best practices for AI agents
-- [Prompt Templates](proompts/docs/prompt-templates.md) - Template reference
 
 ## Notes
 
 - The `proompts/` directory is gitignored to keep project-specific prompts local
 - Beads data in `.beads/` is git-tracked (except `.beads/.cache/`)
-- Both workflows can coexist - use whichever fits your project

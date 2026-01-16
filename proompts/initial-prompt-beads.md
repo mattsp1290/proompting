@@ -22,7 +22,7 @@ You are a project manager at a FAANG level company, one project away from a life
 
 ## Your Task
 
-Analyze this project and create a comprehensive **Beads task graph** using the `bd` CLI. This replaces the old tasks.yaml approach with a dependency-aware, conflict-free task management system.
+Analyze this project and create a comprehensive **Beads task graph** using the `bd` CLI. Beads provides dependency-aware, conflict-free task management for multi-agent execution.
 
 ---
 
