@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/vibes-project/vibes/internal/done"
 	"github.com/vibes-project/vibes/internal/next"
 	"github.com/vibes-project/vibes/internal/setup"
 	"github.com/vibes-project/vibes/internal/styles"
@@ -20,6 +21,7 @@ var (
 	migrateTasks bool
 	skipProompts bool
 	nextVerbose  bool
+	doneVerbose  bool
 )
 
 func main() {
@@ -60,6 +62,26 @@ copying output, and combining with start-task.md.`,
 	}
 	nextCmd.Flags().BoolVarP(&nextVerbose, "verbose", "v", false, "Include full protocol details")
 	rootCmd.AddCommand(nextCmd)
+
+	// Done command - outputs completion prompt for claude
+	doneCmd := &cobra.Command{
+		Use:   "done",
+		Short: "Output a completion prompt for the current task",
+		Long: `Outputs a ready-to-use prompt for completing the current task, including
+work summary, recent commits, and the completion protocol.
+
+Usage with Claude:
+  claude "$(vibes done)"
+
+This helps you wrap up work by:
+- Detecting the current task from branch name or in-progress beads
+- Showing recent commits on the branch
+- Providing the completion protocol (release reservations, update status, etc.)`,
+		Args: cobra.NoArgs,
+		RunE: runDone,
+	}
+	doneCmd.Flags().BoolVarP(&doneVerbose, "verbose", "v", false, "Include full protocol details")
+	rootCmd.AddCommand(doneCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -115,4 +137,11 @@ func runNext(cmd *cobra.Command, args []string) error {
 		Verbose: nextVerbose,
 	}
 	return next.Run(opts)
+}
+
+func runDone(cmd *cobra.Command, args []string) error {
+	opts := done.Options{
+		Verbose: doneVerbose,
+	}
+	return done.Run(opts)
 }
