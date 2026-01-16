@@ -140,6 +140,8 @@ vibes next                 # Output next task as prompt for Claude
 vibes next --verbose       # Include full protocol details
 vibes done                 # Output completion prompt for current task
 vibes done --verbose       # Include full protocol details
+vibes resume               # Output resume prompt to continue work
+vibes resume --verbose     # Include full protocol details
 ```
 
 ### vibes next
@@ -173,6 +175,25 @@ This completes the workflow loop started by `vibes next`, helping you:
 - Mark the task as closed in Beads
 - Check for newly unblocked tasks
 - Optionally continue to the next task
+
+### vibes resume
+
+The `resume` command outputs a ready-to-use prompt for continuing work after a break or in a new session:
+- Current work context (branch, task, status)
+- Uncommitted changes and recent commits
+- Pending items (stashed changes, behind/ahead of remote, inbox hints)
+- Resume protocol (check updates, re-reserve files, continue)
+
+```bash
+# Continue working after a break - one command to catch Claude up
+claude "$(vibes resume)"
+```
+
+This bridges the gap between ephemeral AI sessions and persistent work state, helping you:
+- Seamlessly continue where you left off
+- Check for pending review feedback
+- Verify file reservations are still valid
+- Stay in sync with remote changes
 
 ## MCP Agent Mail Integration
 

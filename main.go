@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vibes-project/vibes/internal/done"
 	"github.com/vibes-project/vibes/internal/next"
+	"github.com/vibes-project/vibes/internal/resume"
 	"github.com/vibes-project/vibes/internal/setup"
 	"github.com/vibes-project/vibes/internal/styles"
 )
@@ -18,10 +19,12 @@ var proomptFS embed.FS
 var (
 	version = "dev"
 
-	migrateTasks bool
-	skipProompts bool
-	nextVerbose  bool
-	doneVerbose  bool
+	migrateTasks  bool
+	skipProompts  bool
+	nextVerbose   bool
+	doneVerbose   bool
+	resumeVerbose bool
+	resumeNoFetch bool
 )
 
 func main() {
@@ -82,6 +85,28 @@ This helps you wrap up work by:
 	}
 	doneCmd.Flags().BoolVarP(&doneVerbose, "verbose", "v", false, "Include full protocol details")
 	rootCmd.AddCommand(doneCmd)
+
+	// Resume command - outputs prompt to continue work
+	resumeCmd := &cobra.Command{
+		Use:   "resume",
+		Short: "Output a prompt to resume work on the current task",
+		Long: `Outputs a ready-to-use prompt for resuming work after a break or in a new session.
+Includes current work context, uncommitted changes, recent commits, and pending items.
+
+Usage with Claude:
+  claude "$(vibes resume)"
+
+This helps you continue seamlessly by:
+- Detecting the current task from branch name or in-progress beads
+- Showing uncommitted changes and recent commits
+- Checking for pending messages or review feedback
+- Providing the resume protocol`,
+		Args: cobra.NoArgs,
+		RunE: runResume,
+	}
+	resumeCmd.Flags().BoolVarP(&resumeVerbose, "verbose", "v", false, "Include full protocol details")
+	resumeCmd.Flags().BoolVar(&resumeNoFetch, "no-fetch", false, "Skip fetching from remote (faster, but may miss remote changes)")
+	rootCmd.AddCommand(resumeCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -144,4 +169,12 @@ func runDone(cmd *cobra.Command, args []string) error {
 		Verbose: doneVerbose,
 	}
 	return done.Run(opts)
+}
+
+func runResume(cmd *cobra.Command, args []string) error {
+	opts := resume.Options{
+		Verbose: resumeVerbose,
+		NoFetch: resumeNoFetch,
+	}
+	return resume.Run(opts)
 }
