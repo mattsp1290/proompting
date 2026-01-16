@@ -138,6 +138,8 @@ vibes /path/to/project     # Set up in specified directory
 vibes --migrate            # Set up and migrate tasks.yaml to Beads
 vibes next                 # Output next task as prompt for Claude
 vibes next --verbose       # Include full protocol details
+vibes done                 # Output completion prompt for current task
+vibes done --verbose       # Include full protocol details
 ```
 
 ### vibes next
@@ -153,6 +155,24 @@ claude "$(vibes next)"
 ```
 
 This eliminates the manual workflow of running `bv --robot-triage`, copying output, and combining with `start-task.md`.
+
+### vibes done
+
+The `done` command outputs a ready-to-use prompt for completing the current task:
+- Work summary (branch, task ID, commit count)
+- Recent commits on the branch
+- Completion protocol (release reservations, update status, check unblocked tasks)
+
+```bash
+# Pipe directly to Claude - one command to wrap up work
+claude "$(vibes done)"
+```
+
+This completes the workflow loop started by `vibes next`, helping you:
+- Release file reservations via MCP Agent Mail
+- Mark the task as closed in Beads
+- Check for newly unblocked tasks
+- Optionally continue to the next task
 
 ## MCP Agent Mail Integration
 

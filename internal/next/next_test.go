@@ -8,9 +8,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/vibes-project/vibes/internal/runner"
 )
 
-// MockRunner is a mock implementation of CommandRunner for testing
+// MockRunner is a mock implementation of runner.CommandRunner for testing
 type MockRunner struct {
 	RunFunc            func(dir string, command string, args ...string) (string, error)
 	RunWithTimeoutFunc func(dir string, timeout time.Duration, command string, args ...string) (string, error)
@@ -431,10 +433,10 @@ func TestRun(t *testing.T) {
 }
 
 func TestDefaultRunner(t *testing.T) {
-	runner := &DefaultRunner{}
+	r := &runner.Default{}
 
 	t.Run("Run with valid command", func(t *testing.T) {
-		result, err := runner.Run(".", "echo", "hello")
+		result, err := r.Run(".", "echo", "hello")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -444,14 +446,14 @@ func TestDefaultRunner(t *testing.T) {
 	})
 
 	t.Run("Run with invalid command", func(t *testing.T) {
-		_, err := runner.Run(".", "nonexistent-command-12345")
+		_, err := r.Run(".", "nonexistent-command-12345")
 		if err == nil {
 			t.Error("expected error for nonexistent command")
 		}
 	})
 
 	t.Run("RunWithTimeout with valid command", func(t *testing.T) {
-		result, err := runner.RunWithTimeout(".", 5*time.Second, "echo", "test")
+		result, err := r.RunWithTimeout(".", 5*time.Second, "echo", "test")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -461,7 +463,7 @@ func TestDefaultRunner(t *testing.T) {
 	})
 
 	t.Run("RunWithTimeout with command not in PATH", func(t *testing.T) {
-		_, err := runner.RunWithTimeout(".", 5*time.Second, "nonexistent-command-12345")
+		_, err := r.RunWithTimeout(".", 5*time.Second, "nonexistent-command-12345")
 		if err == nil {
 			t.Error("expected error for command not in PATH")
 		}
@@ -469,7 +471,7 @@ func TestDefaultRunner(t *testing.T) {
 
 	t.Run("RunWithTimeout respects directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		result, err := runner.RunWithTimeout(tmpDir, 5*time.Second, "pwd")
+		result, err := r.RunWithTimeout(tmpDir, 5*time.Second, "pwd")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
