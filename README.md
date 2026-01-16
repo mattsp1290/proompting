@@ -75,18 +75,18 @@ cd /path/to/project
 - Pass to an AI agent (Claude Code, Cursor, etc.)
 - The agent creates beads using `bd create` commands
 
-**3. Get Next Task**
+**3. Get Next Task and Start Working**
 ```bash
-# AI-optimized recommendations
-bv --robot-triage
+# One command to get next task and pass to Claude
+claude "$(vibes next)"
 
-# Or simple list of ready tasks
+# Or manually: get recommendations, then use start-task.md
+bv --robot-triage
 bd ready
 ```
 
 **4. Start Working**
-- Copy output from `bv --robot-triage`
-- Use `proompts/start-task.md` with the task details
+- `vibes next` combines task selection with the start-task protocol
 - AI agent reserves files, creates branch, implements, commits
 
 **5. Request Review**
@@ -127,6 +127,32 @@ bv --robot-triage          # Smart task recommendations
 bv --robot-plan            # Parallel execution tracks
 bv --robot-insights        # PageRank, critical path analysis
 ```
+
+## Vibes CLI
+
+The `vibes` CLI streamlines the workflow:
+
+```bash
+vibes                      # Set up vibes in current directory
+vibes /path/to/project     # Set up in specified directory
+vibes --migrate            # Set up and migrate tasks.yaml to Beads
+vibes next                 # Output next task as prompt for Claude
+vibes next --verbose       # Include full protocol details
+```
+
+### vibes next
+
+The `next` command outputs a ready-to-use prompt containing:
+- Current git context (branch, status, recent commit)
+- Next recommended task from Beads
+- Start-task protocol
+
+```bash
+# Pipe directly to Claude - one command to start working
+claude "$(vibes next)"
+```
+
+This eliminates the manual workflow of running `bv --robot-triage`, copying output, and combining with `start-task.md`.
 
 ## MCP Agent Mail Integration
 
