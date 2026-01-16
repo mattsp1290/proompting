@@ -11,10 +11,58 @@ import (
 	"time"
 )
 
+// CommandRunner executes shell commands
+type CommandRunner interface {
+	Run(dir string, command string, args ...string) (string, error)
+	RunWithTimeout(dir string, timeout time.Duration, command string, args ...string) (string, error)
+}
+
+// DefaultRunner is the default command runner that executes real commands
+type DefaultRunner struct{}
+
+// Run executes a command and returns stdout
+func (r *DefaultRunner) Run(dir string, command string, args ...string) (string, error) {
+	cmd := exec.Command(command, args...)
+	cmd.Dir = dir
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = nil
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
+}
+
+// RunWithTimeout executes a command with a timeout
+func (r *DefaultRunner) RunWithTimeout(dir string, timeout time.Duration, command string, args ...string) (string, error) {
+	path, err := exec.LookPath(command)
+	if err != nil {
+		return "", err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, path, args...)
+	cmd.Dir = dir
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = nil
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
+}
+
 // Options configures the next command behavior
 type Options struct {
-	Dir     string // Target directory (defaults to cwd)
-	Verbose bool   // Include full protocol details
+	Dir     string        // Target directory (defaults to cwd)
+	Verbose bool          // Include full protocol details
+	Runner  CommandRunner // Command runner (defaults to DefaultRunner)
 }
 
 // Run executes the next command and returns the prompt to stdout
@@ -28,6 +76,11 @@ func Run(opts Options) error {
 		dir = cwd
 	}
 
+	runner := opts.Runner
+	if runner == nil {
+		runner = &DefaultRunner{}
+	}
+
 	var out strings.Builder
 
 	// Header
@@ -35,7 +88,7 @@ func Run(opts Options) error {
 	out.WriteString(fmt.Sprintf("# Next Task for %s\n\n", projectName))
 
 	// Git context
-	gitContext := getGitContext(dir)
+	gitContext := getGitContext(dir, runner)
 	if gitContext != "" {
 		out.WriteString("## Project Context\n")
 		out.WriteString(gitContext)
@@ -43,7 +96,7 @@ func Run(opts Options) error {
 	}
 
 	// Get recommended task from beads
-	taskInfo := getTaskRecommendation(dir)
+	taskInfo := getTaskRecommendation(dir, runner)
 	out.WriteString("## Recommended Task\n")
 	if taskInfo != "" {
 		out.WriteString(taskInfo)
@@ -60,17 +113,17 @@ func Run(opts Options) error {
 	return nil
 }
 
-func getGitContext(dir string) string {
+func getGitContext(dir string, runner CommandRunner) string {
 	var out strings.Builder
 
 	// Current branch
-	branch := runGitCmd(dir, "rev-parse", "--abbrev-ref", "HEAD")
-	if branch != "" {
+	branch, err := runner.Run(dir, "git", "rev-parse", "--abbrev-ref", "HEAD")
+	if err == nil && branch != "" {
 		out.WriteString(fmt.Sprintf("- **Branch**: %s\n", branch))
 	}
 
 	// Status summary
-	status := runGitCmd(dir, "status", "--porcelain")
+	status, _ := runner.Run(dir, "git", "status", "--porcelain")
 	if status == "" {
 		out.WriteString("- **Status**: Clean working tree\n")
 	} else {
@@ -109,15 +162,15 @@ func getGitContext(dir string) string {
 	}
 
 	// Recent commit
-	recentCommit := runGitCmd(dir, "log", "-1", "--format=%s (%ar)")
-	if recentCommit != "" {
+	recentCommit, err := runner.Run(dir, "git", "log", "-1", "--format=%s (%ar)")
+	if err == nil && recentCommit != "" {
 		out.WriteString(fmt.Sprintf("- **Recent**: \"%s\"\n", recentCommit))
 	}
 
 	return out.String()
 }
 
-func getTaskRecommendation(dir string) string {
+func getTaskRecommendation(dir string, runner CommandRunner) string {
 	// Check if beads is initialized
 	beadsDir := filepath.Join(dir, ".beads")
 	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
@@ -125,52 +178,16 @@ func getTaskRecommendation(dir string) string {
 	}
 
 	// Try bv --robot-triage first (more intelligent recommendations)
-	if output := runBeadsCmd(dir, "bv", "--robot-triage"); output != "" {
+	if output, err := runner.RunWithTimeout(dir, 10*time.Second, "bv", "--robot-triage"); err == nil && output != "" {
 		return output
 	}
 
 	// Fall back to bd ready
-	if output := runBeadsCmd(dir, "bd", "ready"); output != "" {
+	if output, err := runner.RunWithTimeout(dir, 10*time.Second, "bd", "ready"); err == nil && output != "" {
 		return output
 	}
 
 	return "Beads initialized but no ready tasks found. Create tasks with `bd create \"Task name\" -p 1`\n"
-}
-
-func runGitCmd(dir string, args ...string) string {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = nil
-
-	if err := cmd.Run(); err != nil {
-		return ""
-	}
-
-	return strings.TrimSpace(stdout.String())
-}
-
-func runBeadsCmd(dir string, command string, args ...string) string {
-	path, err := exec.LookPath(command)
-	if err != nil {
-		return ""
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, path, args...)
-	cmd.Dir = dir
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = nil
-
-	if err := cmd.Run(); err != nil {
-		return ""
-	}
-
-	return strings.TrimSpace(stdout.String())
 }
 
 func getProtocol(verbose bool) string {
