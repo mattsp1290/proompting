@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/vibes-project/vibes/internal/next"
 	"github.com/vibes-project/vibes/internal/setup"
 	"github.com/vibes-project/vibes/internal/styles"
 )
@@ -18,6 +19,7 @@ var (
 
 	migrateTasks bool
 	skipProompts bool
+	nextVerbose  bool
 )
 
 func main() {
@@ -40,6 +42,24 @@ Examples:
 
 	rootCmd.Flags().BoolVar(&migrateTasks, "migrate", false, "Migrate existing tasks.yaml to Beads")
 	rootCmd.Flags().BoolVar(&skipProompts, "skip-proompts", false, "Don't copy proompts directory")
+
+	// Next command - outputs prompt for claude
+	nextCmd := &cobra.Command{
+		Use:   "next",
+		Short: "Output the next task as a prompt for Claude",
+		Long: `Outputs a ready-to-use prompt containing the next recommended task from Beads,
+current git context, and the start-task protocol.
+
+Usage with Claude:
+  claude "$(vibes next)"
+
+This eliminates the manual workflow of running bv --robot-triage,
+copying output, and combining with start-task.md.`,
+		Args: cobra.NoArgs,
+		RunE: runNext,
+	}
+	nextCmd.Flags().BoolVarP(&nextVerbose, "verbose", "v", false, "Include full protocol details")
+	rootCmd.AddCommand(nextCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -88,4 +108,11 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 	_, err := setup.Run(opts)
 	return err
+}
+
+func runNext(cmd *cobra.Command, args []string) error {
+	opts := next.Options{
+		Verbose: nextVerbose,
+	}
+	return next.Run(opts)
 }
