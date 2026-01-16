@@ -71,9 +71,10 @@ def escape_shell(text: str) -> str:
 def parse_tasks_yaml(yaml_path: Path) -> dict:
     """Parse the tasks.yaml file and return structured data.
 
-    Supports two YAML structures:
+    Supports three YAML structures:
     1. Tasks nested under phases[].tasks[] (e.g., sorcery-backend, birbgame)
     2. Tasks at top-level under tasks[] with separate phases[] for metadata (e.g., retro-graph)
+    3. Phase keys like phase1_xxx:, phase2_xxx: with nested task objects (e.g., birb-home)
     """
     with open(yaml_path) as f:
         data = yaml.safe_load(f)
@@ -81,9 +82,11 @@ def parse_tasks_yaml(yaml_path: Path) -> dict:
     tasks = []
     task_id_map = {}  # Map from yaml id to sequential number for variable names
 
-    # Extract metadata
+    # Extract metadata - support both 'metadata' and 'project' keys
     metadata = data.get('metadata', {})
-    project_name = metadata.get('project', metadata.get('project_name', 'unknown'))
+    if not metadata and 'project' in data and isinstance(data['project'], dict):
+        metadata = data['project']
+    project_name = metadata.get('project', metadata.get('project_name', metadata.get('name', 'unknown')))
 
     # Build phase name lookup for top-level tasks structure
     phase_names = {}
@@ -93,11 +96,56 @@ def parse_tasks_yaml(yaml_path: Path) -> dict:
         phase_name = phase.get('name', phase_id)
         phase_names[phase_id] = slugify(phase_name.replace('Phase ', '').split(':')[0])
 
+    # Check for Structure 3: phase1_xxx, phase2_xxx keys
+    phase_keys = [k for k in data.keys() if k.startswith('phase') and k[5:6].isdigit()]
+
     # Check if tasks are nested under phases or at top level
     has_nested_tasks = any(phase.get('tasks') for phase in phases)
     top_level_tasks = data.get('tasks', [])
 
-    if has_nested_tasks:
+    if phase_keys:
+        # Structure 3: Phase keys like phase1_setup, phase2_basic_infra
+        for phase_key in sorted(phase_keys):
+            phase_data = data[phase_key]
+            if not isinstance(phase_data, dict):
+                continue
+
+            phase_name = phase_data.get('name', phase_key)
+            phase_label = slugify(phase_name.replace('Phase ', '').split(':')[0])
+
+            # Tasks can be under 'tasks' dict or directly as keys
+            phase_tasks = phase_data.get('tasks', {})
+            if not phase_tasks:
+                # Look for task-like keys (not standard metadata keys)
+                meta_keys = {'name', 'priority', 'estimated_hours', 'description', 'dependencies'}
+                phase_tasks = {k: v for k, v in phase_data.items()
+                              if isinstance(v, dict) and k not in meta_keys}
+
+            for task_key, task_data in phase_tasks.items():
+                if not isinstance(task_data, dict):
+                    continue
+
+                task_id = task_key
+                task_id_map[task_id] = f'BEAD_{task_id.upper().replace("-", "_").replace(":", "_")}'
+
+                # Handle different field names
+                task_name = task_data.get('name', task_data.get('description', task_id))
+                if isinstance(task_name, str) and len(task_name) > 100:
+                    task_name = task_name[:100] + '...'
+
+                tasks.append({
+                    'id': task_id,
+                    'var_name': task_id_map[task_id],
+                    'name': task_name,
+                    'description': task_data.get('description', ''),
+                    'priority': priority_to_beads(task_data.get('priority', 'medium')),
+                    'status': status_to_beads(task_data.get('status', 'pending')),
+                    'dependencies': task_data.get('dependencies', []),
+                    'label': phase_label,
+                    'references': task_data.get('references', [])
+                })
+
+    elif has_nested_tasks:
         # Structure 1: Tasks nested under phases[].tasks[]
         for phase_idx, phase in enumerate(phases):
             phase_name = phase.get('name', phase.get('id', f'phase-{phase_idx}'))
