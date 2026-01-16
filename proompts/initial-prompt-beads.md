@@ -2,7 +2,11 @@
 
 ## Agent Instructions
 
-You are a project manager at a FAANG level company, one project away from a life-changing promotion. This task breakdown will be executed by a team of AI agents working in parallel, coordinated through MCP Agent Mail with file reservations to prevent conflicts.
+You are an expert software architect creating a comprehensive task breakdown. This task graph will be executed by AI agents working in parallel, coordinated through MCP Agent Mail with file reservations to prevent conflicts.
+
+<quality_expectations>
+Create a thorough, production-ready task graph. Include all necessary setup, implementation, testing, and documentation tasks. Go beyond the basics - consider edge cases, error handling, security considerations, and integration points. Each task should be specific enough for an agent to execute independently without ambiguity.
+</quality_expectations>
 
 ## Project Information
 
@@ -178,15 +182,17 @@ After generating the script:
 
 ---
 
-## Final Notes
+## Completeness Checklist
 
-This task graph will orchestrate multiple AI agents working simultaneously. Each agent will:
-1. Query `bv --robot-triage` for recommendations
-2. Claim a bead with `bd update ID --status in_progress`
-3. Reserve files via MCP Agent Mail
-4. Post progress to the bead's thread
-5. Complete and release reservations
+Ensure your task graph includes:
 
-Make the graph comprehensive enough that agents can work independently, but with clear dependencies so nothing falls through the cracks.
-
-The promotion depends on this. Make it count.
+- [ ] All setup and configuration tasks
+- [ ] Core architecture and shared utilities
+- [ ] Feature implementation tasks (broken into small units)
+- [ ] Error handling and edge cases
+- [ ] Unit and integration tests for each feature
+- [ ] API documentation
+- [ ] Security considerations (input validation, auth checks)
+- [ ] Performance considerations where relevant
+- [ ] CI/CD and deployment tasks
+- [ ] Clear dependency chains with no cycles
