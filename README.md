@@ -35,7 +35,7 @@ The Beads workflow uses a git-backed task graph with dependency tracking, enabli
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                 │
 │  1. PLAN                                                        │
-│     └── Use initial-prompt-beads.md with AI agent               │
+│     └── Use initial-prompt.md with AI agent               │
 │         └── Creates task graph in .beads/                       │
 │                                                                 │
 │  2. SELECT TASK                                                 │
@@ -70,7 +70,7 @@ cd /path/to/project
 ```
 
 **2. Create Task Graph**
-- Open `proompts/initial-prompt-beads.md`
+- Open `proompts/initial-prompt.md`
 - Customize for your project requirements
 - Pass to an AI agent (Claude Code, Cursor, etc.)
 - The agent creates beads using `bd create` commands
@@ -149,7 +149,7 @@ open http://localhost:8765
 
 | Prompt | Purpose |
 |--------|---------|
-| `initial-prompt-beads.md` | Create task graph with Beads |
+| `initial-prompt.md` | Create task graph with Beads |
 | `start-task.md` | Begin working on a selected task |
 | `request-review.md` | Request code review via Agent Mail |
 | `act-on-review.md` | Address review feedback |
@@ -200,7 +200,7 @@ am
 ```
 your-project/
 ├── proompts/                    # Prompt templates (gitignored)
-│   ├── initial-prompt-beads.md  # Task planning
+│   ├── initial-prompt.md  # Task planning
 │   ├── start-task.md            # Begin task
 │   ├── request-review.md        # Request review
 │   ├── act-on-review.md         # Address feedback
