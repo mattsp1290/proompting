@@ -1,76 +1,29 @@
 package done
 
 import (
-	"bytes"
-	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/vibes-project/vibes/internal/runner"
 )
-
-// CommandRunner executes shell commands
-type CommandRunner interface {
-	Run(dir string, command string, args ...string) (string, error)
-	RunWithTimeout(dir string, timeout time.Duration, command string, args ...string) (string, error)
-}
-
-// DefaultRunner is the default command runner that executes real commands
-type DefaultRunner struct{}
-
-// Run executes a command and returns stdout
-func (r *DefaultRunner) Run(dir string, command string, args ...string) (string, error) {
-	cmd := exec.Command(command, args...)
-	cmd.Dir = dir
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = nil
-
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(stdout.String()), nil
-}
-
-// RunWithTimeout executes a command with a timeout
-func (r *DefaultRunner) RunWithTimeout(dir string, timeout time.Duration, command string, args ...string) (string, error) {
-	path, err := exec.LookPath(command)
-	if err != nil {
-		return "", err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, path, args...)
-	cmd.Dir = dir
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = nil
-
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(stdout.String()), nil
-}
 
 // Options configures the done command behavior
 type Options struct {
-	Dir     string        // Target directory (defaults to cwd)
-	Verbose bool          // Include full protocol details
-	Runner  CommandRunner // Command runner (defaults to DefaultRunner)
+	Dir     string               // Target directory (defaults to cwd)
+	Verbose bool                 // Include full protocol details
+	Runner  runner.CommandRunner // Command runner (defaults to runner.Default)
 }
 
 // TaskInfo holds information about the current task
 type TaskInfo struct {
-	ID     string
-	Title  string
-	Branch string
+	ID          string
+	Title       string
+	Branch      string
+	ProjectName string
 }
 
 // Run executes the done command and returns the prompt to stdout
@@ -84,9 +37,9 @@ func Run(opts Options) error {
 		dir = cwd
 	}
 
-	runner := opts.Runner
-	if runner == nil {
-		runner = &DefaultRunner{}
+	r := opts.Runner
+	if r == nil {
+		r = &runner.Default{}
 	}
 
 	var out strings.Builder
@@ -96,8 +49,9 @@ func Run(opts Options) error {
 	out.WriteString(fmt.Sprintf("# Complete Current Work in %s\n\n", projectName))
 
 	// Get current branch and work summary
-	branch := getCurrentBranch(dir, runner)
-	task := detectCurrentTask(dir, branch, runner)
+	branch := getCurrentBranch(dir, r)
+	task := detectCurrentTask(dir, branch, r)
+	task.ProjectName = projectName
 
 	out.WriteString("## Work Summary\n")
 	if branch != "" {
@@ -112,13 +66,13 @@ func Run(opts Options) error {
 	}
 
 	// Commits on this branch
-	commits := getBranchCommits(dir, branch, runner)
+	commits := getBranchCommits(dir, branch, r)
 	if commits != "" {
 		out.WriteString(fmt.Sprintf("- **Commits on branch**: %d commits\n", countLines(commits)))
 	}
 
 	// Working tree status
-	status := getWorkingTreeStatus(dir, runner)
+	status := getWorkingTreeStatus(dir, r)
 	if status != "" {
 		out.WriteString(fmt.Sprintf("- **Working tree**: %s\n", status))
 	}
@@ -140,15 +94,15 @@ func Run(opts Options) error {
 	return nil
 }
 
-func getCurrentBranch(dir string, runner CommandRunner) string {
-	branch, err := runner.Run(dir, "git", "rev-parse", "--abbrev-ref", "HEAD")
+func getCurrentBranch(dir string, r runner.CommandRunner) string {
+	branch, err := r.Run(dir, "git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		return ""
 	}
 	return branch
 }
 
-func detectCurrentTask(dir string, branch string, runner CommandRunner) TaskInfo {
+func detectCurrentTask(dir string, branch string, r runner.CommandRunner) TaskInfo {
 	task := TaskInfo{Branch: branch}
 
 	// Check if beads is initialized
@@ -160,7 +114,7 @@ func detectCurrentTask(dir string, branch string, runner CommandRunner) TaskInfo
 	}
 
 	// Try to find in-progress tasks
-	output, err := runner.RunWithTimeout(dir, 5*time.Second, "bd", "list", "--status", "in_progress")
+	output, err := r.RunWithTimeout(dir, 5*time.Second, "bd", "list", "--status", "in_progress")
 	if err == nil && output != "" {
 		// Parse first in-progress task
 		// Format is typically: "bd-XXXX  Title here  [in_progress]"
@@ -178,7 +132,7 @@ func detectCurrentTask(dir string, branch string, runner CommandRunner) TaskInfo
 	if beadID := extractBeadIDFromBranch(branch); beadID != "" {
 		task.ID = beadID
 		// Try to get the title
-		if output, err := runner.RunWithTimeout(dir, 5*time.Second, "bd", "show", beadID); err == nil {
+		if output, err := r.RunWithTimeout(dir, 5*time.Second, "bd", "show", beadID); err == nil {
 			task.Title = extractTitleFromShow(output)
 		}
 	}
@@ -237,10 +191,10 @@ func extractTitleFromShow(output string) string {
 	return ""
 }
 
-func getBranchCommits(dir string, branch string, runner CommandRunner) string {
+func getBranchCommits(dir string, branch string, r runner.CommandRunner) string {
 	if branch == "" || branch == "main" || branch == "master" {
 		// On main branch, show recent commits instead
-		output, err := runner.Run(dir, "git", "log", "-5", "--oneline")
+		output, err := r.Run(dir, "git", "log", "-5", "--oneline")
 		if err != nil {
 			return ""
 		}
@@ -249,9 +203,9 @@ func getBranchCommits(dir string, branch string, runner CommandRunner) string {
 
 	// Get commits on this branch that aren't on main/master
 	// Try main first, then master
-	output, err := runner.Run(dir, "git", "log", "--oneline", "main..HEAD")
+	output, err := r.Run(dir, "git", "log", "--oneline", "main..HEAD")
 	if err != nil || output == "" {
-		output, err = runner.Run(dir, "git", "log", "--oneline", "master..HEAD")
+		output, err = r.Run(dir, "git", "log", "--oneline", "master..HEAD")
 		if err != nil {
 			return ""
 		}
@@ -259,14 +213,14 @@ func getBranchCommits(dir string, branch string, runner CommandRunner) string {
 
 	if output == "" {
 		// No commits ahead of main, show recent commits
-		output, _ = runner.Run(dir, "git", "log", "-5", "--oneline")
+		output, _ = r.Run(dir, "git", "log", "-5", "--oneline")
 	}
 
 	return output
 }
 
-func getWorkingTreeStatus(dir string, runner CommandRunner) string {
-	status, err := runner.Run(dir, "git", "status", "--porcelain")
+func getWorkingTreeStatus(dir string, r runner.CommandRunner) string {
+	status, err := r.Run(dir, "git", "status", "--porcelain")
 	if err != nil {
 		return ""
 	}
@@ -326,6 +280,11 @@ func getProtocol(task TaskInfo, verbose bool) string {
 		taskID = "<task-id>"
 	}
 
+	projectKey := task.ProjectName
+	if projectKey == "" {
+		projectKey = "project-name"
+	}
+
 	if verbose {
 		return fmt.Sprintf(`1. **Verify work is complete**
    - All tests pass
@@ -356,7 +315,7 @@ func getProtocol(task TaskInfo, verbose bool) string {
    `+"```"+`
 
 Please complete the current work following this protocol.
-`, filepath.Base(task.Branch), taskID)
+`, projectKey, taskID)
 	}
 
 	return fmt.Sprintf(`1. Verify: Tests pass, code committed

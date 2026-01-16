@@ -7,9 +7,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/vibes-project/vibes/internal/runner"
 )
 
-// MockRunner is a mock implementation of CommandRunner for testing
+// MockRunner is a mock implementation of runner.CommandRunner for testing
 type MockRunner struct {
 	RunFunc            func(dir string, command string, args ...string) (string, error)
 	RunWithTimeoutFunc func(dir string, timeout time.Duration, command string, args ...string) (string, error)
@@ -257,7 +259,7 @@ func TestDetectCurrentTask(t *testing.T) {
 }
 
 func TestGetProtocol(t *testing.T) {
-	task := TaskInfo{ID: "bd-123", Title: "Test task", Branch: "feature/test"}
+	task := TaskInfo{ID: "bd-123", Title: "Test task", Branch: "feature/test", ProjectName: "my-project"}
 
 	t.Run("non-verbose protocol", func(t *testing.T) {
 		result := getProtocol(task, false)
@@ -282,6 +284,9 @@ func TestGetProtocol(t *testing.T) {
 		if !strings.Contains(result, "```bash") {
 			t.Error("expected code blocks in verbose mode")
 		}
+		if !strings.Contains(result, "project_key=\"my-project\"") {
+			t.Error("expected project name in project_key")
+		}
 	})
 
 	t.Run("uses placeholder when no task ID", func(t *testing.T) {
@@ -290,6 +295,15 @@ func TestGetProtocol(t *testing.T) {
 
 		if !strings.Contains(result, "<task-id>") {
 			t.Error("expected placeholder when no task ID")
+		}
+	})
+
+	t.Run("uses default project-name when no project name", func(t *testing.T) {
+		taskNoProject := TaskInfo{ID: "bd-456"}
+		result := getProtocol(taskNoProject, true)
+
+		if !strings.Contains(result, "project_key=\"project-name\"") {
+			t.Error("expected default project-name when no project name set")
 		}
 	})
 }
@@ -384,10 +398,10 @@ func TestRun(t *testing.T) {
 }
 
 func TestDefaultRunner(t *testing.T) {
-	runner := &DefaultRunner{}
+	r := &runner.Default{}
 
 	t.Run("Run with valid command", func(t *testing.T) {
-		result, err := runner.Run(".", "echo", "hello")
+		result, err := r.Run(".", "echo", "hello")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -397,14 +411,14 @@ func TestDefaultRunner(t *testing.T) {
 	})
 
 	t.Run("Run with invalid command", func(t *testing.T) {
-		_, err := runner.Run(".", "nonexistent-command-12345")
+		_, err := r.Run(".", "nonexistent-command-12345")
 		if err == nil {
 			t.Error("expected error for nonexistent command")
 		}
 	})
 
 	t.Run("RunWithTimeout with valid command", func(t *testing.T) {
-		result, err := runner.RunWithTimeout(".", 5*time.Second, "echo", "test")
+		result, err := r.RunWithTimeout(".", 5*time.Second, "echo", "test")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -414,7 +428,7 @@ func TestDefaultRunner(t *testing.T) {
 	})
 
 	t.Run("RunWithTimeout with command not in PATH", func(t *testing.T) {
-		_, err := runner.RunWithTimeout(".", 5*time.Second, "nonexistent-command-12345")
+		_, err := r.RunWithTimeout(".", 5*time.Second, "nonexistent-command-12345")
 		if err == nil {
 			t.Error("expected error for command not in PATH")
 		}
