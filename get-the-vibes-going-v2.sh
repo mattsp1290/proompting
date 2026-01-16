@@ -143,50 +143,26 @@ if [ "$MIGRATE_TASKS" = true ]; then
     if [ -n "$TASKS_YAML" ]; then
         print_info "Found tasks.yaml at: $TASKS_YAML"
 
-        # Check if migration script exists
-        MIGRATE_SCRIPT="$SCRIPT_DIR/scripts/migrate-tasks-to-beads.py"
-        CLAUDE_MIGRATE_SCRIPT="$SCRIPT_DIR/scripts/migrate-with-claude.sh"
+        # Primary migration method: Claude Code (handles any YAML structure)
+        MIGRATE_SCRIPT="$SCRIPT_DIR/scripts/migrate-tasks-to-beads.sh"
 
         if [ -f "$MIGRATE_SCRIPT" ]; then
-            if command -v python3 &> /dev/null; then
-                # Check for PyYAML
-                if python3 -c "import yaml" 2>/dev/null; then
-                    print_info "Generating migration script..."
-                    MIGRATION_OUTPUT="$TARGET_DIR/migrate-to-beads.sh"
-
-                    # Try Python migration first, fall back to Claude on failure
-                    if python3 "$MIGRATE_SCRIPT" "$TASKS_YAML" -o "$MIGRATION_OUTPUT" 2>/dev/null; then
-                        print_success "Migration script generated: $MIGRATION_OUTPUT"
-                        echo ""
-                        read -p "Run migration now? (y/N): " -n 1 -r
-                        echo
-                        if [[ $REPLY =~ ^[Yy]$ ]]; then
-                            cd "$TARGET_DIR" && bash "$MIGRATION_OUTPUT"
-                            print_success "Migration complete!"
-                        else
-                            print_info "Run later with: bash $MIGRATION_OUTPUT"
-                        fi
-                    elif [ -f "$CLAUDE_MIGRATE_SCRIPT" ] && command -v claude &> /dev/null; then
-                        print_info "Python parsing failed, using Claude Code..."
-                        cd "$TARGET_DIR" && bash "$CLAUDE_MIGRATE_SCRIPT" "$TASKS_YAML" --verify
-                    else
-                        print_error "Migration failed. Try: python3 $MIGRATE_SCRIPT $TASKS_YAML --fallback-claude"
-                    fi
-                elif [ -f "$CLAUDE_MIGRATE_SCRIPT" ] && command -v claude &> /dev/null; then
-                    # No PyYAML but Claude Code available
-                    print_info "PyYAML not installed, using Claude Code for migration..."
-                    cd "$TARGET_DIR" && bash "$CLAUDE_MIGRATE_SCRIPT" "$TASKS_YAML" --verify
+            if command -v claude &> /dev/null; then
+                print_info "Using Claude Code to migrate tasks..."
+                echo ""
+                read -p "Run migration now? (y/N): " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    cd "$TARGET_DIR" && bash "$MIGRATE_SCRIPT" "$TASKS_YAML" --verify
+                    print_success "Migration complete!"
                 else
-                    print_info "PyYAML not installed. Install with: pip install pyyaml"
-                    print_info "Or install Claude Code: npm install -g @anthropic-ai/claude-code"
-                    print_info "Then run: python3 $MIGRATE_SCRIPT $TASKS_YAML --fallback-claude"
+                    print_info "Run later with: bash $MIGRATE_SCRIPT $TASKS_YAML --verify"
                 fi
-            elif [ -f "$CLAUDE_MIGRATE_SCRIPT" ] && command -v claude &> /dev/null; then
-                # No Python but Claude Code available
-                print_info "Python 3 not found, using Claude Code for migration..."
-                cd "$TARGET_DIR" && bash "$CLAUDE_MIGRATE_SCRIPT" "$TASKS_YAML" --verify
             else
-                print_info "Python 3 not found. Install Python or Claude Code for migration."
+                print_info "Claude Code CLI not found"
+                echo "  Install with: npm install -g @anthropic-ai/claude-code"
+                echo ""
+                echo "  Then run: bash $MIGRATE_SCRIPT $TASKS_YAML --verify"
             fi
         else
             print_info "Migration script not found at $MIGRATE_SCRIPT"
