@@ -69,7 +69,12 @@ def escape_shell(text: str) -> str:
 
 
 def parse_tasks_yaml(yaml_path: Path) -> dict:
-    """Parse the tasks.yaml file and return structured data."""
+    """Parse the tasks.yaml file and return structured data.
+
+    Supports two YAML structures:
+    1. Tasks nested under phases[].tasks[] (e.g., sorcery-backend, birbgame)
+    2. Tasks at top-level under tasks[] with separate phases[] for metadata (e.g., retro-graph)
+    """
     with open(yaml_path) as f:
         data = yaml.safe_load(f)
 
@@ -80,15 +85,54 @@ def parse_tasks_yaml(yaml_path: Path) -> dict:
     metadata = data.get('metadata', {})
     project_name = metadata.get('project', metadata.get('project_name', 'unknown'))
 
-    # Process phases
+    # Build phase name lookup for top-level tasks structure
+    phase_names = {}
     phases = data.get('phases', [])
     for phase_idx, phase in enumerate(phases):
-        phase_name = phase.get('name', phase.get('id', f'phase-{phase_idx}'))
-        phase_label = slugify(phase_name.replace('Phase ', '').split(':')[0])
+        phase_id = phase.get('id', f'phase-{phase_idx}')
+        phase_name = phase.get('name', phase_id)
+        phase_names[phase_id] = slugify(phase_name.replace('Phase ', '').split(':')[0])
 
-        for task in phase.get('tasks', []):
+    # Check if tasks are nested under phases or at top level
+    has_nested_tasks = any(phase.get('tasks') for phase in phases)
+    top_level_tasks = data.get('tasks', [])
+
+    if has_nested_tasks:
+        # Structure 1: Tasks nested under phases[].tasks[]
+        for phase_idx, phase in enumerate(phases):
+            phase_name = phase.get('name', phase.get('id', f'phase-{phase_idx}'))
+            phase_label = slugify(phase_name.replace('Phase ', '').split(':')[0])
+
+            for task in phase.get('tasks', []):
+                task_id = task.get('id', f'task-{len(tasks)}')
+                task_id_map[task_id] = f'BEAD_{task_id.upper().replace("-", "_")}'
+
+                tasks.append({
+                    'id': task_id,
+                    'var_name': task_id_map[task_id],
+                    'name': task.get('name', task_id),
+                    'description': task.get('description', ''),
+                    'priority': priority_to_beads(task.get('priority', 'medium')),
+                    'status': status_to_beads(task.get('status', 'pending')),
+                    'dependencies': task.get('dependencies', []),
+                    'label': phase_label,
+                    'references': task.get('references', [])
+                })
+    elif top_level_tasks:
+        # Structure 2: Tasks at top level under tasks[]
+        # Try to infer phase from task id prefix or use a default
+        for task in top_level_tasks:
             task_id = task.get('id', f'task-{len(tasks)}')
             task_id_map[task_id] = f'BEAD_{task_id.upper().replace("-", "_")}'
+
+            # Try to determine phase label from task id or phase reference
+            phase_ref = task.get('phase', '')
+            if phase_ref and phase_ref in phase_names:
+                phase_label = phase_names[phase_ref]
+            else:
+                # Infer from task id prefix (e.g., 'research-foo' -> 'research')
+                parts = task_id.split('-')
+                phase_label = parts[0] if parts else 'default'
 
             tasks.append({
                 'id': task_id,
