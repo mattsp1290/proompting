@@ -1,10 +1,10 @@
-# proompting
+# vibes
 
 Get up and vibe coding quickly with AI-powered task management.
 
 ## Overview
 
-Proompting provides a framework for managing complex projects with AI-powered task execution. It uses **Beads** for git-backed task graphs with dependency tracking, and **MCP Agent Mail** for multi-agent coordination.
+Vibes provides a framework for managing complex projects with AI-powered task execution. It uses **Beads** for git-backed task graphs with dependency tracking, and **MCP Agent Mail** for multi-agent coordination.
 
 ## Requirements
 

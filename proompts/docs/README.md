@@ -1,6 +1,6 @@
-# Proompting Documentation
+# Vibes Documentation
 
-Welcome to the Proompting project documentation. This system helps AI agents manage and execute complex projects through structured YAML task files.
+Welcome to the Vibes project documentation. This system helps AI agents manage and execute complex projects through structured YAML task files.
 
 ## Quick Start
 
@@ -10,7 +10,7 @@ Welcome to the Proompting project documentation. This system helps AI agents man
 
 ## System Overview
 
-Proompting is a task management system designed specifically for AI agents to break down complex projects into manageable, sequential tasks with clear dependencies.
+Vibes is a task management system designed specifically for AI agents to break down complex projects into manageable, sequential tasks with clear dependencies.
 
 ### Key Components
 
@@ -21,7 +21,7 @@ Proompting is a task management system designed specifically for AI agents to br
 ### Directory Structure
 
 ```
-proompting/
+vibes/
 ├── proompts/
 │   ├── initial-prompt.md      # Generate new task files
 │   ├── get-next-task.md       # Execute tasks

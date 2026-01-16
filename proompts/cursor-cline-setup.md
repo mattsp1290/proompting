@@ -228,7 +228,7 @@ Create `docs/task-schema.json` for YAML validation:
 
 ### 5. Create Workspace Snippets
 
-Create `.vscode/proompting.code-snippets`:
+Create `.vscode/vibes.code-snippets`:
 
 ```json
 {
