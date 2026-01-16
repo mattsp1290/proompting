@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Script: get-the-vibes-going-v2.sh
+# Script: get-the-vibes-going.sh
 # Purpose: Set up proompts + Beads + MCP Agent Mail in a git project
-# Usage: ./get-the-vibes-going-v2.sh <target_directory> [--migrate]
+# Usage: ./get-the-vibes-going.sh <target_directory> [--migrate]
 
 set -e
 

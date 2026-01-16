@@ -19,10 +19,10 @@ Proompting provides a framework for managing complex projects with AI-powered ta
 
 ```bash
 # Set up a project with Beads task management
-./get-the-vibes-going-v2.sh /path/to/your-project
+./get-the-vibes-going.sh /path/to/your-project
 
 # Or with migration of existing tasks.yaml
-./get-the-vibes-going-v2.sh /path/to/your-project --migrate
+./get-the-vibes-going.sh /path/to/your-project --migrate
 ```
 
 ## Workflow
@@ -65,7 +65,7 @@ The Beads workflow uses a git-backed task graph with dependency tracking, enabli
 
 **1. Initialize Project**
 ```bash
-./get-the-vibes-going-v2.sh /path/to/project
+./get-the-vibes-going.sh /path/to/project
 cd /path/to/project
 ```
 
@@ -219,7 +219,7 @@ If you have existing `tasks.yaml` files:
 ./scripts/migrate-tasks-to-beads.sh path/to/tasks.yaml --verify
 
 # During project setup
-./get-the-vibes-going-v2.sh /path/to/project --migrate
+./get-the-vibes-going.sh /path/to/project --migrate
 ```
 
 See [Migration Guide](proompts/docs/migration-guide.md) for details.

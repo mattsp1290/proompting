@@ -73,11 +73,11 @@ python scripts/migrate-tasks-to-beads.py tasks.yaml --json
 
 ## Migration via Onboarding Script
 
-The `get-the-vibes-going-v2.sh` script includes migration support:
+The `get-the-vibes-going.sh` script includes migration support:
 
 ```bash
 # Set up project with migration
-./get-the-vibes-going-v2.sh /path/to/project --migrate
+./get-the-vibes-going.sh /path/to/project --migrate
 ```
 
 This will:
