@@ -94,7 +94,10 @@ bd ready
 - Agent posts review request via MCP Agent Mail
 
 **6. Address Feedback**
-- Use `proompts/act-on-review.md`
+```bash
+# One command to act on review feedback
+claude "$(vibes feedback)"
+```
 - Agent addresses review comments
 - Repeat review cycle if needed
 
@@ -142,6 +145,8 @@ vibes done                 # Output completion prompt for current task
 vibes done --verbose       # Include full protocol details
 vibes resume               # Output resume prompt to continue work
 vibes resume --verbose     # Include full protocol details
+vibes feedback             # Output prompt to act on review feedback
+vibes feedback --verbose   # Include full protocol details
 vibes pr                   # Output PR creation prompt
 vibes pr --verbose         # Include full protocol details
 ```
@@ -196,6 +201,26 @@ This bridges the gap between ephemeral AI sessions and persistent work state, he
 - Check for pending review feedback
 - Verify file reservations are still valid
 - Stay in sync with remote changes
+
+### vibes feedback
+
+The `feedback` command outputs a ready-to-use prompt for acting on code review feedback:
+- Current context (branch, task, review thread)
+- Recent commits and changes summary
+- Instructions to check inbox for review messages
+- Feedback triage and resolution protocol
+
+```bash
+# Address review feedback - one command
+claude "$(vibes feedback)"
+```
+
+This helps you systematically address review feedback by:
+- Checking the review thread for feedback messages
+- Triaging feedback (blocking > suggestions > questions > nitpicks)
+- Re-reserving files if needed
+- Posting resolution summaries back to the thread
+- Requesting re-review when changes are significant
 
 ### vibes pr
 

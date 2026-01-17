@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/vibes-project/vibes/internal/done"
+	"github.com/vibes-project/vibes/internal/feedback"
 	"github.com/vibes-project/vibes/internal/next"
 	"github.com/vibes-project/vibes/internal/pr"
 	"github.com/vibes-project/vibes/internal/resume"
@@ -20,13 +21,14 @@ var proomptFS embed.FS
 var (
 	version = "dev"
 
-	migrateTasks  bool
-	skipProompts  bool
-	nextVerbose   bool
-	doneVerbose   bool
-	resumeVerbose bool
-	resumeNoFetch bool
-	prVerbose     bool
+	migrateTasks    bool
+	skipProompts    bool
+	nextVerbose     bool
+	doneVerbose     bool
+	resumeVerbose   bool
+	resumeNoFetch   bool
+	prVerbose       bool
+	feedbackVerbose bool
 )
 
 func main() {
@@ -130,6 +132,28 @@ This helps you create well-crafted pull requests by:
 	prCmd.Flags().BoolVarP(&prVerbose, "verbose", "v", false, "Include full protocol details")
 	rootCmd.AddCommand(prCmd)
 
+	// Feedback command - outputs prompt to act on review feedback
+	feedbackCmd := &cobra.Command{
+		Use:   "feedback",
+		Short: "Output a prompt to act on review feedback",
+		Long: `Outputs a ready-to-use prompt for addressing code review feedback received
+through MCP Agent Mail. Includes current context, review thread info, and the
+act-on-review protocol.
+
+Usage with Claude:
+  claude "$(vibes feedback)"
+
+This helps you address review feedback by:
+- Detecting the current task and review thread
+- Providing instructions to check inbox for feedback
+- Guiding you through the feedback triage and resolution process
+- Posting resolution summaries back to the review thread`,
+		Args: cobra.NoArgs,
+		RunE: runFeedback,
+	}
+	feedbackCmd.Flags().BoolVarP(&feedbackVerbose, "verbose", "v", false, "Include full protocol details")
+	rootCmd.AddCommand(feedbackCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -206,4 +230,11 @@ func runPr(cmd *cobra.Command, args []string) error {
 		Verbose: prVerbose,
 	}
 	return pr.Run(opts)
+}
+
+func runFeedback(cmd *cobra.Command, args []string) error {
+	opts := feedback.Options{
+		Verbose: feedbackVerbose,
+	}
+	return feedback.Run(opts)
 }
