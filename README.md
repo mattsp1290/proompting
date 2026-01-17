@@ -149,6 +149,8 @@ vibes feedback             # Output prompt to act on review feedback
 vibes feedback --verbose   # Include full protocol details
 vibes pr                   # Output PR creation prompt
 vibes pr --verbose         # Include full protocol details
+vibes pr-fix               # Output prompt to fix PR issues
+vibes pr-fix --verbose     # Include full protocol details
 ```
 
 ### vibes next
@@ -240,6 +242,25 @@ This completes the workflow after `vibes done`, helping you:
 - Review changes for issues before submitting
 - Generate a well-crafted PR title and description
 - Create the PR with `gh pr create`
+
+### vibes pr-fix
+
+The `pr-fix` command outputs a ready-to-use prompt for fixing issues blocking a pull request:
+- PR status (CI checks, reviews, merge conflicts)
+- Failing check details with links to logs
+- Review comments that need addressing
+- Step-by-step instructions to fix each issue
+
+```bash
+# Iterate on PR until it's mergeable - one command
+claude "$(vibes pr-fix)"
+```
+
+This closes the PR loop after `vibes pr`, helping you:
+- Identify and fix failing CI checks
+- Address review comments systematically
+- Resolve merge conflicts
+- Know when the PR is ready to merge
 
 ## MCP Agent Mail Integration
 

@@ -10,6 +10,7 @@ import (
 	"github.com/vibes-project/vibes/internal/feedback"
 	"github.com/vibes-project/vibes/internal/next"
 	"github.com/vibes-project/vibes/internal/pr"
+	"github.com/vibes-project/vibes/internal/prfix"
 	"github.com/vibes-project/vibes/internal/resume"
 	"github.com/vibes-project/vibes/internal/setup"
 	"github.com/vibes-project/vibes/internal/styles"
@@ -28,6 +29,7 @@ var (
 	resumeVerbose   bool
 	resumeNoFetch   bool
 	prVerbose       bool
+	prfixVerbose    bool
 	feedbackVerbose bool
 )
 
@@ -132,6 +134,28 @@ This helps you create well-crafted pull requests by:
 	prCmd.Flags().BoolVarP(&prVerbose, "verbose", "v", false, "Include full protocol details")
 	rootCmd.AddCommand(prCmd)
 
+	// PR Fix command - outputs prompt to fix PR issues
+	prfixCmd := &cobra.Command{
+		Use:   "pr-fix",
+		Short: "Output a prompt to fix PR issues (CI failures, review comments, conflicts)",
+		Long: `Outputs a ready-to-use prompt for fixing issues blocking a pull request.
+Checks CI status, review comments, and merge conflicts, then provides instructions
+to address them.
+
+Usage with Claude:
+  claude "$(vibes pr-fix)"
+
+This helps you iterate on a PR until it's mergeable by:
+- Checking CI status and identifying failing checks
+- Gathering review comments that need addressing
+- Detecting merge conflicts
+- Providing step-by-step instructions to fix each issue`,
+		Args: cobra.NoArgs,
+		RunE: runPrFix,
+	}
+	prfixCmd.Flags().BoolVarP(&prfixVerbose, "verbose", "v", false, "Include full protocol details")
+	rootCmd.AddCommand(prfixCmd)
+
 	// Feedback command - outputs prompt to act on review feedback
 	feedbackCmd := &cobra.Command{
 		Use:   "feedback",
@@ -230,6 +254,13 @@ func runPr(cmd *cobra.Command, args []string) error {
 		Verbose: prVerbose,
 	}
 	return pr.Run(opts)
+}
+
+func runPrFix(cmd *cobra.Command, args []string) error {
+	opts := prfix.Options{
+		Verbose: prfixVerbose,
+	}
+	return prfix.Run(opts)
 }
 
 func runFeedback(cmd *cobra.Command, args []string) error {
