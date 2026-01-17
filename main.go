@@ -13,6 +13,7 @@ import (
 	"github.com/vibes-project/vibes/internal/prfix"
 	"github.com/vibes-project/vibes/internal/resume"
 	"github.com/vibes-project/vibes/internal/setup"
+	"github.com/vibes-project/vibes/internal/stuck"
 	"github.com/vibes-project/vibes/internal/styles"
 )
 
@@ -31,6 +32,7 @@ var (
 	prVerbose       bool
 	prfixVerbose    bool
 	feedbackVerbose bool
+	stuckVerbose    bool
 )
 
 func main() {
@@ -178,6 +180,29 @@ This helps you address review feedback by:
 	feedbackCmd.Flags().BoolVarP(&feedbackVerbose, "verbose", "v", false, "Include full protocol details")
 	rootCmd.AddCommand(feedbackCmd)
 
+	// Stuck command - outputs prompt to help debug issues
+	stuckCmd := &cobra.Command{
+		Use:   "stuck [description]",
+		Short: "Output a prompt to help debug when you're stuck",
+		Long: `Outputs a ready-to-use prompt for getting help when you're stuck on something.
+Gathers context about recent changes, attempts to detect errors, and asks Claude
+to help diagnose and fix the issue.
+
+Usage with Claude:
+  claude "$(vibes stuck)"
+  claude "$(vibes stuck 'tests fail but I dont understand why')"
+
+This helps you get unstuck by:
+- Showing recent changes and commits
+- Detecting build/compile errors automatically
+- Providing a debugging protocol for systematic investigation
+- Asking Claude to diagnose the root cause and suggest fixes`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: runStuck,
+	}
+	stuckCmd.Flags().BoolVarP(&stuckVerbose, "verbose", "v", false, "Include full protocol details")
+	rootCmd.AddCommand(stuckCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -268,4 +293,16 @@ func runFeedback(cmd *cobra.Command, args []string) error {
 		Verbose: feedbackVerbose,
 	}
 	return feedback.Run(opts)
+}
+
+func runStuck(cmd *cobra.Command, args []string) error {
+	var description string
+	if len(args) > 0 {
+		description = args[0]
+	}
+	opts := stuck.Options{
+		Verbose:     stuckVerbose,
+		Description: description,
+	}
+	return stuck.Run(opts)
 }
