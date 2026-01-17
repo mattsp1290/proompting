@@ -151,6 +151,9 @@ vibes pr                   # Output PR creation prompt
 vibes pr --verbose         # Include full protocol details
 vibes pr-fix               # Output prompt to fix PR issues
 vibes pr-fix --verbose     # Include full protocol details
+vibes stuck                # Output debugging prompt when stuck
+vibes stuck "description"  # Include problem description
+vibes stuck --verbose      # Include full protocol details
 ```
 
 ### vibes next
@@ -261,6 +264,29 @@ This closes the PR loop after `vibes pr`, helping you:
 - Address review comments systematically
 - Resolve merge conflicts
 - Know when the PR is ready to merge
+
+### vibes stuck
+
+The `stuck` command outputs a ready-to-use prompt for getting help when you're stuck:
+- Current context (branch, task, working tree status)
+- Recent changes (staged and unstaged diffs)
+- Detected errors (build failures, type errors, lint issues)
+- Debugging protocol for systematic investigation
+
+```bash
+# When you're stuck - one command to get help
+claude "$(vibes stuck)"
+
+# With a description of the problem
+claude "$(vibes stuck 'tests fail but I dont understand why')"
+```
+
+This helps you get unstuck by:
+- Gathering the right context automatically
+- Detecting common errors (Go build, TypeScript, Python syntax)
+- Asking Claude to diagnose the root cause
+- Getting specific fix suggestions
+- Creating a debugging loop: stuck → diagnose → fix → verify
 
 ## MCP Agent Mail Integration
 
