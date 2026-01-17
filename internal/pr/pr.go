@@ -1,15 +1,25 @@
 package pr
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/vibes-project/vibes/internal/beads"
 	"github.com/vibes-project/vibes/internal/git"
 	"github.com/vibes-project/vibes/internal/runner"
 )
+
+// PRInfo holds information about an existing pull request
+type PRInfo struct {
+	Number int    `json:"number"`
+	Title  string `json:"title"`
+	URL    string `json:"url"`
+	State  string `json:"state"`
+}
 
 // Options configures the pr command behavior
 type Options struct {
@@ -36,9 +46,7 @@ func Run(opts Options) error {
 
 	var out strings.Builder
 
-	// Header
 	projectName := filepath.Base(dir)
-	out.WriteString(fmt.Sprintf("# Create Pull Request for %s\n\n", projectName))
 
 	// Get current branch and task context
 	branch := git.GetCurrentBranch(dir, r)
@@ -46,15 +54,12 @@ func Run(opts Options) error {
 	task := beads.DetectCurrentTask(dir, branch, r)
 	task.ProjectName = projectName
 
-	// Branch info section
-	out.WriteString("## Branch Info\n")
-	if branch != "" {
-		out.WriteString(fmt.Sprintf("- **Current**: %s\n", branch))
-	}
-	out.WriteString(fmt.Sprintf("- **Base**: %s\n", baseBranch))
-
-	// Check if we're on the base branch
+	// Check if we're on the base branch (early exit)
 	if branch == baseBranch || branch == "main" || branch == "master" {
+		out.WriteString(fmt.Sprintf("# Create Pull Request for %s\n\n", projectName))
+		out.WriteString("## Branch Info\n")
+		out.WriteString(fmt.Sprintf("- **Current**: %s\n", branch))
+		out.WriteString(fmt.Sprintf("- **Base**: %s\n", baseBranch))
 		out.WriteString("\n⚠️ You are on the base branch. Create a feature branch first:\n")
 		out.WriteString("```bash\n")
 		out.WriteString("git checkout -b feature/your-feature-name\n")
@@ -62,6 +67,28 @@ func Run(opts Options) error {
 		fmt.Print(out.String())
 		return nil
 	}
+
+	// Check for existing PR
+	existingPR := getExistingPR(dir, branch, r)
+
+	// Header - changes based on whether PR exists
+	if existingPR != nil {
+		out.WriteString(fmt.Sprintf("# Pull Request #%d for %s\n\n", existingPR.Number, projectName))
+		out.WriteString("## Existing PR\n")
+		out.WriteString(fmt.Sprintf("- **PR**: #%d %s\n", existingPR.Number, existingPR.Title))
+		out.WriteString(fmt.Sprintf("- **Status**: %s\n", existingPR.State))
+		out.WriteString(fmt.Sprintf("- **URL**: %s\n", existingPR.URL))
+		out.WriteString("\n")
+	} else {
+		out.WriteString(fmt.Sprintf("# Create Pull Request for %s\n\n", projectName))
+	}
+
+	// Branch info section
+	out.WriteString("## Branch Info\n")
+	if branch != "" {
+		out.WriteString(fmt.Sprintf("- **Current**: %s\n", branch))
+	}
+	out.WriteString(fmt.Sprintf("- **Base**: %s\n", baseBranch))
 
 	// Commits ahead
 	commits := git.GetBranchCommits(dir, branch, r)
@@ -113,7 +140,11 @@ func Run(opts Options) error {
 
 	// Protocol
 	out.WriteString("## Protocol\n")
-	out.WriteString(getProtocol(task, baseBranch, opts.Verbose))
+	if existingPR != nil {
+		out.WriteString(getExistingPRProtocol(existingPR, opts.Verbose))
+	} else {
+		out.WriteString(getProtocol(task, baseBranch, opts.Verbose))
+	}
 
 	fmt.Print(out.String())
 	return nil
@@ -222,4 +253,70 @@ Please review the changes and create the pull request.
 
 Please review the changes and create the pull request.
 `, taskContext, baseBranch)
+}
+
+// getExistingPR checks if a PR already exists for the given branch
+func getExistingPR(dir string, branch string, r runner.CommandRunner) *PRInfo {
+	output, err := r.RunWithTimeout(dir, 10*time.Second, "gh", "pr", "list", "--head", branch, "--json", "number,title,url,state", "--limit", "1")
+	if err != nil || output == "" {
+		return nil
+	}
+
+	var prs []PRInfo
+	if err := json.Unmarshal([]byte(output), &prs); err != nil {
+		return nil
+	}
+
+	if len(prs) == 0 {
+		return nil
+	}
+
+	return &prs[0]
+}
+
+// getExistingPRProtocol returns the protocol for an existing PR
+func getExistingPRProtocol(pr *PRInfo, verbose bool) string {
+	if verbose {
+		return fmt.Sprintf(`A pull request already exists for this branch.
+
+1. **Review the PR status**:
+   `+"```bash"+`
+   gh pr view %d
+   gh pr checks %d
+   `+"```"+`
+
+2. **Check for review feedback**:
+   `+"```bash"+`
+   gh pr view %d --comments
+   `+"```"+`
+
+3. **If changes are needed**, commit and push:
+   `+"```bash"+`
+   git add -A && git commit -m "address review feedback"
+   git push
+   `+"```"+`
+
+4. **View the PR in browser**:
+   `+"```bash"+`
+   gh pr view %d --web
+   `+"```"+`
+
+5. **When ready to merge**:
+   `+"```bash"+`
+   gh pr merge %d
+   `+"```"+`
+
+The PR is ready for review or updates.
+`, pr.Number, pr.Number, pr.Number, pr.Number, pr.Number)
+	}
+
+	return fmt.Sprintf(`A pull request already exists for this branch.
+
+1. View PR: `+"`gh pr view %d`"+`
+2. Check status: `+"`gh pr checks %d`"+`
+3. Push updates: `+"`git push`"+` (if changes made)
+4. Open in browser: `+"`gh pr view %d --web`"+`
+
+The PR is ready for review or updates.
+`, pr.Number, pr.Number, pr.Number)
 }

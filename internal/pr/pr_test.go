@@ -320,3 +320,107 @@ type mockError struct{}
 func (e *mockError) Error() string {
 	return "mock error"
 }
+
+func TestGetExistingPR(t *testing.T) {
+	t.Run("returns PR info when PR exists", func(t *testing.T) {
+		mock := &MockRunner{
+			RunWithTimeoutFunc: func(dir string, timeout time.Duration, command string, args ...string) (string, error) {
+				if command == "gh" && len(args) >= 2 && args[0] == "pr" && args[1] == "list" {
+					return `[{"number":42,"title":"Test PR","url":"https://github.com/test/repo/pull/42","state":"OPEN"}]`, nil
+				}
+				return "", nil
+			},
+		}
+
+		result := getExistingPR("/test", "feature/test", mock)
+		if result == nil {
+			t.Fatal("expected PR info, got nil")
+		}
+		if result.Number != 42 {
+			t.Errorf("expected PR number 42, got %d", result.Number)
+		}
+		if result.Title != "Test PR" {
+			t.Errorf("expected title 'Test PR', got %s", result.Title)
+		}
+		if result.State != "OPEN" {
+			t.Errorf("expected state 'OPEN', got %s", result.State)
+		}
+	})
+
+	t.Run("returns nil when no PR exists", func(t *testing.T) {
+		mock := &MockRunner{
+			RunWithTimeoutFunc: func(dir string, timeout time.Duration, command string, args ...string) (string, error) {
+				return "[]", nil
+			},
+		}
+
+		result := getExistingPR("/test", "feature/test", mock)
+		if result != nil {
+			t.Errorf("expected nil, got %+v", result)
+		}
+	})
+
+	t.Run("returns nil on error", func(t *testing.T) {
+		mock := &MockRunner{
+			RunWithTimeoutFunc: func(dir string, timeout time.Duration, command string, args ...string) (string, error) {
+				return "", &mockError{}
+			},
+		}
+
+		result := getExistingPR("/test", "feature/test", mock)
+		if result != nil {
+			t.Errorf("expected nil, got %+v", result)
+		}
+	})
+
+	t.Run("returns nil on invalid JSON", func(t *testing.T) {
+		mock := &MockRunner{
+			RunWithTimeoutFunc: func(dir string, timeout time.Duration, command string, args ...string) (string, error) {
+				return "not valid json", nil
+			},
+		}
+
+		result := getExistingPR("/test", "feature/test", mock)
+		if result != nil {
+			t.Errorf("expected nil, got %+v", result)
+		}
+	})
+}
+
+func TestGetExistingPRProtocol(t *testing.T) {
+	pr := &PRInfo{Number: 42, Title: "Test PR", URL: "https://github.com/test/repo/pull/42", State: "OPEN"}
+
+	t.Run("non-verbose protocol", func(t *testing.T) {
+		result := getExistingPRProtocol(pr, false)
+
+		if !strings.Contains(result, "pull request already exists") {
+			t.Error("expected existing PR message")
+		}
+		if !strings.Contains(result, "gh pr view 42") {
+			t.Error("expected gh pr view command with PR number")
+		}
+		if !strings.Contains(result, "gh pr checks 42") {
+			t.Error("expected gh pr checks command")
+		}
+		if !strings.Contains(result, "git push") {
+			t.Error("expected git push instruction")
+		}
+	})
+
+	t.Run("verbose protocol", func(t *testing.T) {
+		result := getExistingPRProtocol(pr, true)
+
+		if !strings.Contains(result, "**Review the PR status**") {
+			t.Error("expected bold headers in verbose mode")
+		}
+		if !strings.Contains(result, "gh pr view 42 --comments") {
+			t.Error("expected comments command")
+		}
+		if !strings.Contains(result, "gh pr merge 42") {
+			t.Error("expected merge command in verbose mode")
+		}
+		if !strings.Contains(result, "```bash") {
+			t.Error("expected code blocks in verbose mode")
+		}
+	})
+}
