@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vibes-project/vibes/internal/done"
 	"github.com/vibes-project/vibes/internal/next"
+	"github.com/vibes-project/vibes/internal/pr"
 	"github.com/vibes-project/vibes/internal/resume"
 	"github.com/vibes-project/vibes/internal/setup"
 	"github.com/vibes-project/vibes/internal/styles"
@@ -25,6 +26,7 @@ var (
 	doneVerbose   bool
 	resumeVerbose bool
 	resumeNoFetch bool
+	prVerbose     bool
 )
 
 func main() {
@@ -108,6 +110,26 @@ This helps you continue seamlessly by:
 	resumeCmd.Flags().BoolVar(&resumeNoFetch, "no-fetch", false, "Skip fetching from remote (faster, but may miss remote changes)")
 	rootCmd.AddCommand(resumeCmd)
 
+	// PR command - outputs prompt for creating a pull request
+	prCmd := &cobra.Command{
+		Use:   "pr",
+		Short: "Output a prompt for creating a pull request",
+		Long: `Outputs a ready-to-use prompt for reviewing changes and creating a pull request.
+Includes branch info, commit history, files changed, and the PR creation protocol.
+
+Usage with Claude:
+  claude "$(vibes pr)"
+
+This helps you create well-crafted pull requests by:
+- Gathering all changes since branching from main/master
+- Including task context (if beads available)
+- Providing instructions for review and PR creation with gh cli`,
+		Args: cobra.NoArgs,
+		RunE: runPr,
+	}
+	prCmd.Flags().BoolVarP(&prVerbose, "verbose", "v", false, "Include full protocol details")
+	rootCmd.AddCommand(prCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -177,4 +199,11 @@ func runResume(cmd *cobra.Command, args []string) error {
 		NoFetch: resumeNoFetch,
 	}
 	return resume.Run(opts)
+}
+
+func runPr(cmd *cobra.Command, args []string) error {
+	opts := pr.Options{
+		Verbose: prVerbose,
+	}
+	return pr.Run(opts)
 }

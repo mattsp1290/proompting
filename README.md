@@ -142,6 +142,8 @@ vibes done                 # Output completion prompt for current task
 vibes done --verbose       # Include full protocol details
 vibes resume               # Output resume prompt to continue work
 vibes resume --verbose     # Include full protocol details
+vibes pr                   # Output PR creation prompt
+vibes pr --verbose         # Include full protocol details
 ```
 
 ### vibes next
@@ -194,6 +196,25 @@ This bridges the gap between ephemeral AI sessions and persistent work state, he
 - Check for pending review feedback
 - Verify file reservations are still valid
 - Stay in sync with remote changes
+
+### vibes pr
+
+The `pr` command outputs a ready-to-use prompt for creating a pull request:
+- Branch info (current branch, base branch, commits ahead)
+- Task context (bead ID and title if available)
+- Commit history since branching
+- Files changed with diff summary
+- PR creation protocol using `gh` CLI
+
+```bash
+# Have Claude review and create a PR - one command
+claude "$(vibes pr)"
+```
+
+This completes the workflow after `vibes done`, helping you:
+- Review changes for issues before submitting
+- Generate a well-crafted PR title and description
+- Create the PR with `gh pr create`
 
 ## MCP Agent Mail Integration
 
