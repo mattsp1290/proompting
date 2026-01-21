@@ -361,7 +361,7 @@ func updateGitignore(targetDir string) (bool, error) {
 		lineSet[strings.TrimSpace(line)] = true
 	}
 
-	entries := []string{"proompts/", ".beads/.cache/"}
+	entries := []string{".beads/.cache/"}
 	added := false
 
 	for _, entry := range entries {

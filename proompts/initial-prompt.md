@@ -59,35 +59,28 @@ echo "Creating project beads..."
 # Phase 1: Project Setup & Infrastructure
 # ========================================
 
-bd create "Initialize project with Vite + React + TypeScript" -p 0 --label setup
-SETUP_VITE=$(bd list --json | jq -r '.[-1].id')
+SETUP_VITE=$(bd create "Initialize project with Vite + React + TypeScript" -p 0 --label setup --silent)
 
-bd create "Configure ESLint, Prettier, and TypeScript strict mode" -p 1 --label setup
-SETUP_LINT=$(bd list --json | jq -r '.[-1].id')
+SETUP_LINT=$(bd create "Configure ESLint, Prettier, and TypeScript strict mode" -p 1 --label setup --silent)
 bd dep add $SETUP_LINT $SETUP_VITE
 
-bd create "Set up Tailwind CSS with design system tokens" -p 1 --label setup
-SETUP_TAILWIND=$(bd list --json | jq -r '.[-1].id')
+SETUP_TAILWIND=$(bd create "Set up Tailwind CSS with design system tokens" -p 1 --label setup --silent)
 bd dep add $SETUP_TAILWIND $SETUP_VITE
 
-bd create "Configure testing framework (Vitest + Testing Library)" -p 1 --label setup
-SETUP_TESTING=$(bd list --json | jq -r '.[-1].id')
+SETUP_TESTING=$(bd create "Configure testing framework (Vitest + Testing Library)" -p 1 --label setup --silent)
 bd dep add $SETUP_TESTING $SETUP_LINT
 
 # ========================================
 # Phase 2: Core Architecture
 # ========================================
 
-bd create "Implement API client with error handling and retries" -p 0 --label core
-API_CLIENT=$(bd list --json | jq -r '.[-1].id')
+API_CLIENT=$(bd create "Implement API client with error handling and retries" -p 0 --label core --silent)
 bd dep add $API_CLIENT $SETUP_VITE
 
-bd create "Set up global state management (Zustand/Jotai)" -p 0 --label core
-STATE_MGMT=$(bd list --json | jq -r '.[-1].id')
+STATE_MGMT=$(bd create "Set up global state management (Zustand/Jotai)" -p 0 --label core --silent)
 bd dep add $STATE_MGMT $SETUP_VITE
 
-bd create "Create authentication context and hooks" -p 0 --label core
-AUTH_CONTEXT=$(bd list --json | jq -r '.[-1].id')
+AUTH_CONTEXT=$(bd create "Create authentication context and hooks" -p 0 --label core --silent)
 bd dep add $AUTH_CONTEXT $STATE_MGMT
 bd dep add $AUTH_CONTEXT $API_CLIENT
 
