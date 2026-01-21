@@ -2,11 +2,11 @@
 
 ## Prerequisites
 
-This prompt should be executed AFTER `proompts/initial-prompt.md` has been completed and a `tasks.yaml` file exists in the project root.
+This prompt should be executed AFTER `proompts/initial-prompt.md` has been completed and Beads has been initialized (`.beads/` directory exists with `beads.jsonl`).
 
 ## Agent Instructions
 
-You are setting up a Claude Code environment for optimal AI-assisted development on the Proompting project. Your goal is to configure the workspace for maximum productivity when working with task-based development using Claude Code CLI.
+You are setting up a Claude Code environment for optimal AI-assisted development using the Beads task system. Your goal is to configure the workspace for maximum productivity when working with bead-based development using Claude Code CLI.
 
 **Research Capabilities**: Claude Code has built-in `WebSearch` and `WebFetch` tools for real-time web research. Use these tools when you need current information about technologies, best practices, or solutions that might not be in your training data.
 
@@ -15,10 +15,9 @@ You are setting up a Claude Code environment for optimal AI-assisted development
 ### 1. Verify Project Structure
 
 First, verify the following files and directories exist:
-- `/proompts/tasks/` directory
-- `/docs/` directory with documentation files
-- `tasks.yaml` in the project root
-- Example task in `/proompts/tasks/example-todo-app.yaml`
+- `/.beads/` directory with `beads.jsonl`
+- `/proompts/` directory with prompt files
+- Run `bd list` to confirm beads are created
 
 ### 2. Create Claude Code Configuration
 
@@ -28,49 +27,57 @@ Create a `CLAUDE.md` file in the project root with project-specific instructions
 ```markdown
 # Project-Specific Instructions for Claude Code
 
-## Task Management
-- Always reference the current task ID when making changes
-- Update task status in tasks.yaml when starting and completing work
-- Commit changes with task ID in commit message: "[task-id] Description"
+## Beads Task Management
+
+This project uses **Beads** for dependency-aware task management. Tasks are stored in `.beads/beads.jsonl`.
+
+### Quick Reference
+- `bd ready` - List tasks ready to work on (all dependencies completed)
+- `bd list` - List all tasks
+- `bd show <id>` - View task details
+- `bd start <id>` - Start working on a task
+- `bd finish <id>` - Mark task complete
+- `bd block <id> <reason>` - Mark task as blocked
+- `bd graph` - View dependency graph
+- `bd count` - Show task counts by status
+
+### AI Triage Commands
+- `bv --robot-triage` - Get AI-friendly task recommendations with scores
+- `bv --robot-next` - Get single top priority pick
+- `bv --robot-plan` - Get parallel execution tracks
+- `bv --robot-insights` - PageRank, critical path analysis
+- `bv --robot-priority` - Priority misalignment detection
+
+### Workflow
+1. Run `bd ready` or `bv --robot-triage` to find available work
+2. Start the task: `bd start bd-XXX`
+3. Implement the task
+4. Mark complete: `bd finish bd-XXX`
+5. Commit with bead ID: `git commit -m "bd-XXX: Description"`
+
+### Branch Naming
+Create branches with bead ID: `feature/bd-123-description`
 
 ## Research and Information Gathering
 - Use WebSearch for real-time research when needed
 - Use WebFetch to retrieve specific documentation pages
 - Research current best practices before implementing new technologies
 - Verify compatibility and versions of tools/libraries before use
-- Document research findings in task updates or separate docs
 
 ## File Organization
-- Task files go in /proompts/tasks/
-- Documentation goes in /docs/
+- Prompt files and docs go in /proompts/
 - Follow existing project structure patterns
 
 ## Code Standards
-- Use TypeScript for type safety when applicable
 - Follow existing code style in the project
 - Write tests for new features
 - Document complex logic with comments
 
-## Working with Tasks
-1. Read tasks.yaml to find next pending task
-2. Check all dependencies are completed
-3. Research any unfamiliar technologies or requirements using WebSearch
-4. Update status to 'in-progress'
-5. Implement the task
-6. Update status to 'completed'
-7. Add update entry with timestamp
-
-## AI Agent Guidelines
-- Reference docs/agent-guidelines.md for detailed practices
-- Use docs/prompt-templates.md for common scenarios
-- Consult docs/task-format-guide.md for YAML structure
-- Leverage WebSearch for up-to-date information and verification
-
 ## Claude Code Workflow
-- Use the TodoWrite tool to track multi-step tasks
+- Use the TodoWrite tool to track multi-step implementations
 - Use the Task tool for complex exploration and research
 - Prefer Edit over Write for modifying existing files
-- Make atomic commits with descriptive messages
+- Make atomic commits with bead ID in message
 ```
 
 ### 3. Create Quick Reference Commands
@@ -80,19 +87,25 @@ Create `.claude/commands.md` for common Claude Code workflows:
 ```markdown
 # Quick Reference Commands for Claude Code
 
-## Task Management
+## Beads Task Management
 
-"What is the next available task in tasks.yaml with all dependencies completed?"
+"Run `bd ready` and show me the available tasks I can work on."
 
-"I want to start working on task [TASK_ID]. Please update its status to in-progress and summarize what needs to be done."
+"Show me the triage recommendations with `bv --robot-triage`."
 
-"I've finished task [TASK_ID]. Please update its status to completed and add an update entry with today's date."
+"Show me details for bead bd-XXX using `bd show bd-XXX`."
 
-"Show me all in-progress tasks and their descriptions."
+"Start bead bd-XXX for me and summarize what needs to be implemented."
 
-"Check if task [TASK_ID] has all its dependencies completed."
+"I've finished bead bd-XXX. Mark it complete with `bd finish bd-XXX`."
 
-"Generate a progress summary showing completed, in-progress, and pending tasks."
+"Show me the dependency graph with `bd graph`."
+
+"What's the overall progress? Run `bd count` to see task counts."
+
+"Show me the task graph and critical path with `bv --robot-insights`."
+
+"What's the parallel execution plan? Run `bv --robot-plan`."
 
 ## Research and Development
 
@@ -122,105 +135,50 @@ Create `.claude/commands.md` for common Claude Code workflows:
 
 "Run the tests and fix any failures."
 
-"Commit these changes with an appropriate message referencing task [TASK_ID]."
+"Commit these changes with an appropriate message referencing bead bd-XXX."
 ```
 
-### 4. Create Task Schema (Optional but Helpful)
+### 4. Create Bead Status Script
 
-Create `docs/task-schema.json` for YAML validation:
+Create `scripts/bead-status.sh`:
 
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": ["metadata", "phases", "dependencies", "notes", "updates"],
-  "properties": {
-    "metadata": {
-      "type": "object",
-      "required": ["project", "description", "tech_stack"],
-      "properties": {
-        "project": { "type": "string" },
-        "description": { "type": "string" },
-        "tech_stack": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
-    },
-    "phases": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["name", "tasks"],
-        "properties": {
-          "name": { "type": "string" },
-          "tasks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["id", "name", "description", "priority", "status"],
-              "properties": {
-                "id": { "type": "string" },
-                "name": { "type": "string" },
-                "description": { "type": "string" },
-                "priority": {
-                  "type": "string",
-                  "enum": ["critical", "high", "medium", "low"]
-                },
-                "status": {
-                  "type": "string",
-                  "enum": ["pending", "in-progress", "completed", "blocked"]
-                },
-                "dependencies": {
-                  "type": "array",
-                  "items": { "type": "string" }
-                },
-                "references": {
-                  "type": "array",
-                  "items": { "type": "string" }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "dependencies": {
-      "type": "object",
-      "properties": {
-        "external": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["project", "tasks"],
-            "properties": {
-              "project": { "type": "string" },
-              "location": { "type": "string" },
-              "purpose": { "type": "string" },
-              "tasks": {
-                "type": "array",
-                "items": { "type": "string" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "notes": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "updates": {
-      "type": "array",
-      "items": { "type": "string" }
-    }
-  }
-}
+```bash
+#!/bin/bash
+# Quick bead status checker
+
+echo "=== Bead Status Summary ==="
+echo ""
+
+# Check if beads is initialized
+if [ ! -d ".beads" ]; then
+    echo "Beads not initialized. Run 'bd init' first."
+    exit 1
+fi
+
+echo "Task Counts:"
+bd count 2>/dev/null || echo "Unable to get counts"
+
+echo ""
+echo "=== In-Progress Beads ==="
+bd list --status in_progress 2>/dev/null || echo "None"
+
+echo ""
+echo "=== Ready Beads (unblocked) ==="
+bd ready 2>/dev/null | head -10
+
+echo ""
+echo "=== AI Triage Recommendation ==="
+echo "Run 'bv --robot-triage' for intelligent task recommendations"
+```
+
+Make it executable:
+```bash
+chmod +x scripts/bead-status.sh
 ```
 
 ### 5. Create Git Configuration
 
-Create or update `.gitignore`:
+Create or update `.gitignore` to include beads cache:
 
 ```
 # OS
@@ -254,42 +212,12 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# Beads cache (SQLite)
+.beads/.cache/
 ```
 
-### 6. Create Quick Start Script
-
-Create `scripts/task-status.sh`:
-
-```bash
-#!/bin/bash
-# Quick task status checker
-
-echo "=== Task Status Summary ==="
-echo ""
-
-# Count tasks by status
-echo "Task Counts:"
-echo "- Completed: $(grep -c "status: completed" tasks.yaml)"
-echo "- In Progress: $(grep -c "status: in-progress" tasks.yaml)"
-echo "- Pending: $(grep -c "status: pending" tasks.yaml)"
-echo "- Blocked: $(grep -c "status: blocked" tasks.yaml)"
-
-echo ""
-echo "=== In-Progress Tasks ==="
-awk '/- id:/{id=$3} /name:/{name=$0} /status: in-progress/{print id, name}' tasks.yaml
-
-echo ""
-echo "=== Next Available Tasks (pending with completed dependencies) ==="
-# This is simplified - a more complex script would actually check dependencies
-awk '/- id:/{id=$3} /name:/{name=$0} /status: pending/{if (!deps) print id, name} /dependencies:/{deps=1} /^ *- id:/{deps=0}' tasks.yaml | head -5
-```
-
-Make it executable:
-```bash
-chmod +x scripts/task-status.sh
-```
-
-### 7. Create Claude Code Tools Reference
+### 6. Create Claude Code Tools Reference
 
 Create `.claude/tools.md`:
 
@@ -335,54 +263,81 @@ Track multi-step tasks and show progress.
 - Breaking down features into steps
 - Tracking progress on multi-file changes
 
-## Integration with Tasks
-- Use before starting complex tasks to gather current information
-- Research dependencies and their compatibility
-- Find examples of similar implementations
-- Verify that planned approaches are still current
+## Beads Integration
+
+### bv (Beads Viewer) Robot Flags
+```bash
+bv --robot-triage     # Intelligent recommendations with scores
+bv --robot-next       # Single top priority pick
+bv --robot-plan       # Parallel execution tracks
+bv --robot-insights   # PageRank, critical path analysis
+bv --robot-priority   # Priority misalignment detection
 ```
 
-### 8. Create README for Claude Code Users
+### bd (Beads) Commands
+```bash
+bd init               # Initialize beads in project
+bd create "Title"     # Create new bead
+bd ready              # List unblocked beads
+bd list               # List all beads
+bd show <id>          # View bead details
+bd start <id>         # Start working on a bead
+bd finish <id>        # Mark bead as complete
+bd block <id> <reason>  # Mark bead as blocked
+bd graph              # View dependency graph
+bd count              # Show task counts by status
+bd dep add <child> <parent>  # Add dependency
+```
+
+## Workflow Integration
+- Use `bv --robot-triage` to find high-value work
+- Use TodoWrite to break down bead work into steps
+- Research dependencies with WebSearch before implementing
+- Verify approaches are still current using web tools
+```
+
+### 7. Create README for Claude Code Users
 
 Create `.claude/README.md`:
 
 ```markdown
-# Claude Code Setup for Proompting
+# Claude Code Setup for Beads-Based Development
 
-This directory contains Claude Code-specific configuration for the Proompting project.
+This directory contains Claude Code-specific configuration for working with the Beads task system.
 
 ## Quick Start
 
 1. Open the project with `claude` command in terminal
-2. Ask "What's the next available task?"
+2. Run `bd ready` or `bv --robot-triage` to find available work
 3. Reference CLAUDE.md for project conventions
 4. Use commands.md for quick reference prompts
 
 ## Useful Commands
 
-- Find next task: "What's the next available task?"
-- Start work: "Start task [ID]"
-- Check progress: "Show project progress"
-- Update status: "Mark task [ID] as completed"
-- Explore: "Use the Explore agent to find [PATTERN]"
+- Find ready work: `bd ready`
+- AI triage: `bv --robot-triage`
+- View task: `bd show <id>`
+- Start work: `bd start <id>`
+- Complete work: `bd finish <id>`
+- Check progress: `bd count`
+- View graph: `bd graph` or `bv` (interactive TUI)
 
 ## Key Files
 
-- `/tasks.yaml` - Active project tasks
-- `/proompts/tasks/` - Task file examples
-- `/docs/` - Project documentation
+- `/.beads/beads.jsonl` - Task graph (git-tracked)
+- `/proompts/` - Project prompts and documentation
 - `/CLAUDE.md` - Project instructions for Claude Code
 - `/.claude/tools.md` - Available tools and usage
 
 ## Tips
 
-1. Always update task status when working
-2. Reference task IDs in commits
-3. Check dependencies before starting tasks
-4. **Use WebSearch for research** before implementing unfamiliar tech
-5. Use the TodoWrite tool for multi-step tasks
-6. Use the Explore agent for codebase understanding
-7. Research current best practices using web search when needed
+1. Always use `bd start <id>` before working on a task
+2. Use `bv --robot-triage` for intelligent recommendations
+3. Include bead ID in branch names: `feature/bd-123-description`
+4. Include bead ID in commits: `bd-123: Description`
+5. **Use WebSearch for research** before implementing unfamiliar tech
+6. Use the TodoWrite tool for multi-step implementations
+7. Use the Explore agent for codebase understanding
 ```
 
 ## Verification Steps
@@ -391,25 +346,28 @@ After setup, verify:
 
 1. [ ] CLAUDE.md exists in project root
 2. [ ] .claude/ directory with configuration files
-3. [ ] Task status script works: `./scripts/task-status.sh`
-4. [ ] Documentation is accessible in /docs/
+3. [ ] Bead status script works: `./scripts/bead-status.sh`
+4. [ ] Beads is working: `bd list` shows tasks
+5. [ ] Ready tasks exist: `bd ready` shows available work
 
 ## Next Steps
 
 1. Open the project with `claude` in terminal
-2. Ask Claude Code to find the next available task
-3. Begin working through tasks systematically
-4. Refer to `CLAUDE.md` for project conventions
-5. Use documentation in `/docs/` as needed
+2. Run `bv --robot-triage` to find recommended work
+3. Use `bd show <id>` to review task requirements
+4. Begin working through beads with `bd start <id>`
+5. Refer to `CLAUDE.md` for project conventions
 
 ## Tips for Optimal Workflow
 
-1. **Use TodoWrite**: Track complex tasks with the built-in todo list
-2. **Research First**: Use WebSearch to research unfamiliar technologies
-3. **Explore Agent**: Use the Task tool with Explore agent for codebase navigation
-4. **Atomic Commits**: Make atomic commits with task ID references
-5. **Stay Current**: Regularly research best practices for technologies you're using
-6. **Plan Mode**: Use EnterPlanMode for non-trivial implementations
+1. **Use Beads**: Always `bd start` before working, `bd finish` when done
+2. **Use TodoWrite**: Track complex implementations with the built-in todo list
+3. **Research First**: Use WebSearch to research unfamiliar technologies
+4. **Explore Agent**: Use the Task tool with Explore agent for codebase navigation
+5. **Atomic Commits**: Make atomic commits with bead ID references
+6. **Stay Current**: Regularly research best practices for technologies you're using
+7. **Plan Mode**: Use EnterPlanMode for non-trivial implementations
+8. **Triage**: Start sessions with `bv --robot-triage` for intelligent task selection
 
 ## Claude Code Capabilities
 
@@ -422,6 +380,25 @@ Claude Code provides powerful built-in capabilities:
 - **Git Integration**: Commit, create PRs, and manage version control
 - **File Operations**: Read, Write, Edit with intelligent context
 
+## Beads + Claude Code Integration
+
+Beads provides dependency-aware task management that works well with Claude Code:
+
+- **Parallel Execution**: Multiple agents can work on independent beads
+- **Dependency Tracking**: `bd ready` only shows tasks with completed dependencies
+- **File Reservations**: Beads can track which files each task modifies
+- **MCP Agent Mail**: Threads are auto-created as `bd-{id}` for coordination
+
+## Beads Workflow
+
+```
+1. bv --robot-triage          # Get recommendations
+2. bd start bd-XXX            # Claim the task
+3. [Do the work]
+4. bd finish bd-XXX           # Mark complete
+5. git commit -m "bd-XXX: Description"
+```
+
 ---
 
-Your Claude Code environment is now optimized for task-based development with enhanced research capabilities. Happy coding!
+Your Claude Code environment is now optimized for bead-based development with enhanced research capabilities.
