@@ -11,6 +11,7 @@ import (
 	"github.com/vibes-project/vibes/internal/next"
 	"github.com/vibes-project/vibes/internal/pr"
 	"github.com/vibes-project/vibes/internal/prfix"
+	"github.com/vibes-project/vibes/internal/ralph"
 	"github.com/vibes-project/vibes/internal/resume"
 	"github.com/vibes-project/vibes/internal/setup"
 	"github.com/vibes-project/vibes/internal/stuck"
@@ -33,6 +34,10 @@ var (
 	prfixVerbose    bool
 	feedbackVerbose bool
 	stuckVerbose    bool
+	ralphVerbose    bool
+	ralphGoal       string
+	ralphAutopilot  bool
+	ralphMaxIter    int
 )
 
 func main() {
@@ -203,6 +208,34 @@ This helps you get unstuck by:
 	stuckCmd.Flags().BoolVarP(&stuckVerbose, "verbose", "v", false, "Include full protocol details")
 	rootCmd.AddCommand(stuckCmd)
 
+	// Ralph command - outputs prompt for autonomous Ralph loop development
+	ralphCmd := &cobra.Command{
+		Use:   "ralph",
+		Short: "Output a prompt for autonomous Ralph loop development",
+		Long: `Outputs a ready-to-use prompt optimized for autonomous, iterative development
+using the Ralph Loop technique. The prompt includes task context, completion requirements
+(tests + explicit promise), and checkpoint commit protocols.
+
+Usage with Ralph Loop plugin:
+  /ralph-loop "$(vibes ralph)" --completion-promise "COMPLETE" --max-iterations 30
+
+Modes:
+  Default (single task): Work on the next Beads task
+  --goal "description":  Work toward a specific goal
+  --autopilot:           Work through the entire task graph
+
+The prompt ensures dual completion signals:
+  1. Tests/build must pass
+  2. Claude must output <promise>COMPLETE</promise>`,
+		Args: cobra.NoArgs,
+		RunE: runRalph,
+	}
+	ralphCmd.Flags().BoolVarP(&ralphVerbose, "verbose", "v", false, "Include full protocol details")
+	ralphCmd.Flags().StringVarP(&ralphGoal, "goal", "g", "", "Work toward a specific goal")
+	ralphCmd.Flags().BoolVarP(&ralphAutopilot, "autopilot", "a", false, "Work through entire task graph")
+	ralphCmd.Flags().IntVarP(&ralphMaxIter, "max-iterations", "n", 0, "Suggest max iterations (0 = unlimited)")
+	rootCmd.AddCommand(ralphCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -305,4 +338,21 @@ func runStuck(cmd *cobra.Command, args []string) error {
 		Description: description,
 	}
 	return stuck.Run(opts)
+}
+
+func runRalph(cmd *cobra.Command, args []string) error {
+	mode := ralph.ModeSingleTask
+	if ralphGoal != "" {
+		mode = ralph.ModeGoal
+	} else if ralphAutopilot {
+		mode = ralph.ModeAutopilot
+	}
+
+	opts := ralph.Options{
+		Verbose:       ralphVerbose,
+		Mode:          mode,
+		Goal:          ralphGoal,
+		MaxIterations: ralphMaxIter,
+	}
+	return ralph.Run(opts)
 }

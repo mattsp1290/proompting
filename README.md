@@ -154,6 +154,11 @@ vibes pr-fix --verbose     # Include full protocol details
 vibes stuck                # Output debugging prompt when stuck
 vibes stuck "description"  # Include problem description
 vibes stuck --verbose      # Include full protocol details
+vibes ralph                # Output prompt for autonomous Ralph loop development
+vibes ralph --goal "..."   # Work toward a specific goal
+vibes ralph --autopilot    # Work through entire task graph
+vibes ralph --verbose      # Include full protocol details
+vibes ralph -n 30          # Suggest max iterations
 ```
 
 ### vibes next
@@ -287,6 +292,37 @@ This helps you get unstuck by:
 - Asking Claude to diagnose the root cause
 - Getting specific fix suggestions
 - Creating a debugging loop: stuck → diagnose → fix → verify
+
+### vibes ralph
+
+The `ralph` command outputs a ready-to-use prompt optimized for autonomous, iterative development using the Ralph Loop technique:
+- Task context from Beads or goal description
+- Auto-detected test/build commands
+- Dual completion requirements (tests pass + explicit promise)
+- Checkpoint commit protocol
+
+```bash
+# Single task mode (default) - work on next Beads task
+/ralph-loop "$(vibes ralph)" --completion-promise "COMPLETE" --max-iterations 30
+
+# Goal mode - work toward a specific objective
+/ralph-loop "$(vibes ralph --goal 'Add user authentication')" --completion-promise "COMPLETE"
+
+# Autopilot mode - work through entire task graph
+/ralph-loop "$(vibes ralph --autopilot)" --completion-promise "COMPLETE" --max-iterations 100
+
+# With verbose protocol details
+vibes ralph --verbose
+
+# Suggest max iterations
+vibes ralph -n 50
+```
+
+This enables autonomous development loops by:
+- Auto-detecting test runners (Go, Node, Python, Rust, Make)
+- Requiring dual completion signals: tests must pass AND `<promise>COMPLETE</promise>` must be output
+- Enforcing checkpoint commits after each successful iteration
+- Supporting three modes: single task, goal-oriented, and full autopilot
 
 ## MCP Agent Mail Integration
 
